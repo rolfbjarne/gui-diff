@@ -1,0 +1,7 @@
+*.user
+*.suo
+*.exe
+*.mdb
+bin
+obj
+*.resources

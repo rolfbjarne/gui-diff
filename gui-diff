@@ -1,0 +1,5 @@
+#!/bin/bash -e
+
+DIR=`dirname $0`
+
+GIT_PAGER= mono --debug $MONO_OPTIONS $DIR/gui-diff.exe "$@"

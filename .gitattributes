@@ -1,0 +1,14 @@
+# ensure native line endings on checkout
+*.cs	crlf
+*.sh	crlf
+*.il	crlf
+.gitattributes	crlf
+*akefile*	crlf
+gui-diff	crlf
+
+# don't do anything to line-endings.  Let CRLFs go into the repo, and CRLF on checkout
+*.sln		-crlf
+*.*proj* 	-crlf
+*.xml 		-crlf
+*.resx		-crlf
+*.config	-crlf
