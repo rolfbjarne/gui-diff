@@ -391,6 +391,10 @@ namespace gui_diff
 		public bool edited_changelog;
 		public bool added;
 		public bool untracked;
+		
+		public string QuotedFileName {
+			get { return "\"" + filename + "\""; }
+		}
 	}
 
 	class DiffException : Exception

@@ -81,14 +81,14 @@ namespace gui_diff
 						Console.WriteLine ("STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF");
 						Console.ResetColor ();
 					}
-					diff = Execute ("git", "diff --staged " + color + " -- " + selected.filename, monoport);
+					diff = Execute ("git", "diff --staged " + color + " -- " + selected.QuotedFileName, monoport);
 					if (!monoport) {
 						Console.ForegroundColor = ConsoleColor.Magenta;
 						Console.WriteLine ("STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF");
 						Console.ResetColor ();
 					}
 				} else {
-					diff = Execute ("git", "diff " + color + " -- " + selected.filename, monoport);
+					diff = Execute ("git", "diff " + color + " -- " + selected.QuotedFileName, monoport);
 				}
 			}
 			if (monoport) {
@@ -204,18 +204,25 @@ namespace gui_diff
 					cmds.Help ();
 				}
 			},
-			{ "e|edit|kate", "Open file in editor (kate)", delegate (string v)
+			{ "e|edit", "Open file in editor", delegate (string v)
 				{
 					if (selected == null)
 						throw new DiffException ("You need to select a file first.");
-					Execute ("kate", selected.filename);
+					Execute ("edit", selected.QuotedFileName);
+				}
+			},
+			{ "gedit", "Open the file in gedit", delegate (string v)
+				{
+					if (selected == null)
+						throw new DiffException ("You need to select a file first.");
+					Execute ("gedit", selected.QuotedFileName);
 				}
 			},
 			{ "nano", "Open file in nano", delegate (string v)
 				{
 					if (selected == null)
 						throw new DiffException ("You need to select a file first.");
-					Execute ("nano", "-c " + selected.filename, false);
+					Execute ("nano", "-c " + selected.QuotedFileName, false);
 				}
 			},
 			{ "c|changelog", "Edit ChangeLog for the selected file", delegate (string v)
@@ -232,7 +239,7 @@ namespace gui_diff
 					if (selected == null)
 						throw new DiffException ("You need to select a file first.");
 					list_dirty = true;
-					Execute ("git", (selected.deleted ? "rm -- " : "add ") + selected.filename);
+					Execute ("git", (selected.deleted ? "rm -- " : "add ") + selected.QuotedFileName);
 					PrintList ();
 				}
 			},
@@ -241,7 +248,7 @@ namespace gui_diff
 					if (selected == null)
 						throw new DiffException ("You need to select a file first.");
 					list_dirty = true;
-					Execute ("git", (selected.deleted ? "rm -- " : "add ") + selected.filename);
+					Execute ("git", (selected.deleted ? "rm -- " : "add ") + selected.QuotedFileName);
 					if (selected == null)
 						throw new DiffException ("You need to select a file first.");
 					int idx = entries.IndexOf (selected);
@@ -283,7 +290,7 @@ namespace gui_diff
 					if (selected == null)
 						throw new DiffException ("You need to select a file first.");
 					list_dirty = true;
-					Execute ("git", (selected.deleted ? "rm -- " : "add ") + selected.filename);
+					Execute ("git", (selected.deleted ? "rm -- " : "add ") + selected.QuotedFileName);
 					EditChangeLog (selected);
 					PrintList ();
 				}
@@ -293,7 +300,7 @@ namespace gui_diff
 					if (selected == null)
 						throw new DiffException ("You need to select a file first.");
 					list_dirty = true;
-					Execute ("git", "add -p " + selected.filename, false);
+					Execute ("git", "add -p " + selected.QuotedFileName, false);
 				}
 			},
 			{ "ci|gitci|git ci", "Commit using gitci", delegate (string v)
@@ -352,9 +359,9 @@ namespace gui_diff
 						throw new DiffException ("You need to select a file first.");
 					list_dirty = true;
 					if (selected.untracked) {
-						Execute ("rm", "\"" + selected.filename + "\"");
+						Execute ("rm", selected.QuotedFileName);
 					} else {
-						Execute ("git", "rm -f \"" + selected.filename + "\"");
+						Execute ("git", "rm -f " + selected.QuotedFileName);
 					}
 					PrintList ();
 				}
@@ -386,7 +393,7 @@ namespace gui_diff
 					if (selected == null) {
 						Execute ("git", "reset");
 					} else {
-						Execute ("git", "reset -- " + selected.filename);
+						Execute ("git", "reset -- " + selected.QuotedFileName);
 					}
 				}
 			},
@@ -395,7 +402,7 @@ namespace gui_diff
 					if (selected == null)
 						throw new DiffException ("You need to select a file first.");
 					list_dirty = true;
-					Execute ("git", "checkout " + selected.filename);
+					Execute ("git", "checkout " + selected.QuotedFileName);
 					PrintList ();
 				}
 			},
@@ -404,7 +411,7 @@ namespace gui_diff
 					if (selected == null)
 						throw new DiffException ("You need to select a file first.");
 					list_dirty = true;
-					Execute ("muld", Path.Combine (Environment.CurrentDirectory, selected.filename), false);
+					Execute ("muld", Path.Combine (Environment.CurrentDirectory, selected.QuotedFileName), false);
 				}
 			},
 			{ "gui", "Run git gui", delegate (string v)
