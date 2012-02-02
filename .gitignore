@@ -5,3 +5,5 @@
 bin
 obj
 *.resources
+*.pidb
+*.userprefs
