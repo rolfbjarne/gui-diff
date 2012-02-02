@@ -145,8 +145,8 @@ namespace gui_diff
 
 		public string Execute (string cmd, string args, bool capture_stdout, bool wait_for_exit, bool use_shell_execute = false)
 		{
-			StringBuilder stderr = new StringBuilder ();
-			StringBuilder stdout = new StringBuilder ();
+			StringBuilder std = new StringBuilder ();
+			
 			using (System.Threading.ManualResetEvent stderr_event = new System.Threading.ManualResetEvent (false)) {
 				using (System.Threading.ManualResetEvent stdout_event = new System.Threading.ManualResetEvent (false)) {
 
@@ -160,22 +160,22 @@ namespace gui_diff
 
 						p.ErrorDataReceived += (object o, DataReceivedEventArgs ea) =>
 							{
-								lock (stderr) {
+								lock (std) {
 									if (ea.Data == null) {
 										stderr_event.Set ();
 									} else {
-										stderr.AppendLine (ea.Data);
+										std.AppendLine (ea.Data);
 									}
 								}
 							};
 
 						p.OutputDataReceived += (object o, DataReceivedEventArgs ea) =>
 						{
-							lock (stdout) {
+							lock (std) {
 								if (ea.Data == null) {
 									stdout_event.Set ();
 								} else {
-									stdout.AppendLine (ea.Data);
+									std.AppendLine (ea.Data);
 								}
 							}
 						};
@@ -205,8 +205,8 @@ namespace gui_diff
 
 						if (capture_stdout && !use_shell_execute) {
 							if (p.ExitCode != 0)
-								throw new Exception (stderr.ToString ());
-							return stdout.ToString ();
+								throw new Exception ("Program execution failed: " + Environment.NewLine + std.ToString ());
+							return std.ToString ();
 						} else {
 							return null;
 						}
