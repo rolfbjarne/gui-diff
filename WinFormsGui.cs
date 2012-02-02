@@ -651,7 +651,7 @@ namespace gui_diff {
 					if (selected == null)
 						throw new DiffException ("You need to select a file first.");
 					list_dirty = true;
-					Execute ("git", (selected.deleted ? "rm -- " : "add ") + selected.filename);
+					Execute ("git", (selected.deleted ? "rm -- " : "add ") + selected.QuotedFilename);
 					gui.PrintList ();
 				}
 			},
@@ -660,7 +660,7 @@ namespace gui_diff {
 					if (selected == null)
 						throw new DiffException ("You need to select a file first.");
 					list_dirty = true;
-					Execute ("git", (selected.deleted ? "rm -- " : "add ") + selected.filename);
+					Execute ("git", (selected.deleted ? "rm -- " : "add ") + selected.QuotedFilename);
 					if (selected == null)
 						throw new DiffException ("You need to select a file first.");
 					int idx = entries.IndexOf (selected);
@@ -690,7 +690,7 @@ namespace gui_diff {
 					list_dirty = true;
 					foreach (var entry in entries) {
 						if (entry.untracked) {
-							Execute ("git", "add " + entry.filename);
+							Execute ("git", "add " + entry.QuotedFilename);
 							Console.WriteLine ("Added " + entry.filename);
 						}
 					}
@@ -702,7 +702,7 @@ namespace gui_diff {
 					if (selected == null)
 						throw new DiffException ("You need to select a file first.");
 					list_dirty = true;
-					Execute ("git", "add -p " + selected.filename, false);
+					Execute ("git", "add -p " + selected.QuotedFilename, false);
 				}
 			},
 			{ "ci|gitci|git ci", "Commit using gitci", delegate (string v)
@@ -722,7 +722,7 @@ namespace gui_diff {
 			{ "dt|dm|difftool|diffmerge", "Show the diff using diffmerge", delegate (string v)
 				{
 					list_dirty = true;
-					Execute ("git", "difftool --no-prompt --extcmd=/c/Users/Rolf/bin/diffmerge-diff2.sh -- " + selected.filename, false);
+					Execute ("git", "difftool --no-prompt --extcmd=/c/Users/Rolf/bin/diffmerge-diff2.sh -- " + selected.QuotedFilename, false);
 					gui.PrintList ();
 				}
 			},
@@ -747,9 +747,9 @@ namespace gui_diff {
 						throw new DiffException ("You need to select a file first.");
 					list_dirty = true;
 					if (selected.untracked) {
-						Execute ("rm", "\"" + selected.filename + "\"");
+						Execute ("rm", selected.QuotedFilename);
 					} else {
-						Execute ("git", "rm -f \"" + selected.filename + "\"");
+						Execute ("git", "rm -f " + selected.QuotedFilename);
 					}
 					gui.PrintList ();
 				}
@@ -766,7 +766,7 @@ namespace gui_diff {
 					if (selected == null)
 						throw new DiffException ("You need to select a file first.");
 					list_dirty = true;
-					Execute ("git", "reset -- " + selected.filename);
+					Execute ("git", "reset -- " + selected.QuotedFilename);
 				}
 			},
 			{ "checkout", "Checks out the selected file (equivalent to svn revert)", delegate (string v)
@@ -774,7 +774,7 @@ namespace gui_diff {
 					if (selected == null)
 						throw new DiffException ("You need to select a file first.");
 					list_dirty = true;
-					Execute ("git", "checkout " + selected.filename);
+					Execute ("git", "checkout " + selected.QuotedFilename);
 					gui.PrintList ();
 				}
 			},
