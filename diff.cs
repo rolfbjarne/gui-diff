@@ -344,7 +344,7 @@ namespace gui_diff
 
 				// find .git directory
 				string original_cd = Environment.CurrentDirectory;
-				while (!Directory.Exists (Path.Combine (Environment.CurrentDirectory, ".git"))) {
+				while (!Directory.Exists (Path.Combine (Environment.CurrentDirectory, ".git")) && !File.Exists (Path.Combine (Environment.CurrentDirectory, ".git"))) {
 					PREFIX = Path.GetFileName (Environment.CurrentDirectory) + Path.DirectorySeparatorChar + PREFIX;
 					string dir = Path.GetDirectoryName (Environment.CurrentDirectory);
 					if (!Directory.Exists (dir)) {
