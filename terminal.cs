@@ -208,14 +208,14 @@ namespace gui_diff
 				{
 					if (selected == null)
 						throw new DiffException ("You need to select a file first.");
-					Execute ("edit", selected.QuotedFileName);
+					Execute ("gedit", selected.QuotedFileName);
 				}
 			},
 			{ "gedit", "Open the file in gedit", delegate (string v)
 				{
 					if (selected == null)
 						throw new DiffException ("You need to select a file first.");
-					Execute ("gedit", selected.QuotedFileName);
+					Execute ("gedit", selected.QuotedFileName, false, false, false);
 				}
 			},
 			{ "nano", "Open file in nano", delegate (string v)
