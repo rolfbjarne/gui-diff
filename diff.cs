@@ -93,7 +93,9 @@ namespace gui_diff
 				entry.filename = file;
 				entry.staged = staged.Contains (file);
 				entry.staged_whole = !diff.Contains (file);
-				if (!File.Exists (file)) {
+				if (Directory.Exists (file)) {
+					entry.is_directory = true;
+				} else if (!File.Exists (file)) {
 					entry.deleted = true;
 				} else {
 					entry.messed_up_eol = IsEolMessedUp (file, out Ac, out ADc, out DAc, out Dc, ref entry.is_binary);
@@ -397,6 +399,7 @@ namespace gui_diff
 		public bool edited_changelog;
 		public bool added;
 		public bool untracked;
+		public bool is_directory;
 		
 		public string QuotedFileName {
 			get { return "\"" + filename + "\""; }

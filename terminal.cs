@@ -615,6 +615,9 @@ namespace gui_diff
 					Console.ForegroundColor = color;
 				Console.Write (entries [i].filename.Substring (PREFIX.Length));
 				Console.ResetColor ();
+
+				if (entries[i].is_directory)
+					Console.WriteLine (" [DIRECTORY]");
 				Console.WriteLine ();
 			}
 		}
