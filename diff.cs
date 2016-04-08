@@ -73,7 +73,7 @@ namespace gui_diff
 		public void RefreshList ()
 		{
 			int Ac = 0, ADc = 0, DAc = 0, Dc = 0;
-			List<string> diff = ExecuteToLines ("git", "diff --name-only");
+			List<string> diff = ExecuteToLines ("git", "diff --name-only --ignore-submodules");
 			List<string> staged = ExecuteToLines ("git", "diff --name-only --staged");
 			List<string> untracked = ExecuteToLines ("git", "ls-files --other --exclude-standard");
 			List<string> all = new List<string> (diff);
