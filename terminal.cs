@@ -27,6 +27,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Diagnostics;
 
 namespace gui_diff
@@ -218,6 +219,11 @@ namespace gui_diff
 					Execute ("gedit", selected.QuotedFileName, false, false, false);
 				}
 			},
+			{ "geditall", "Open the files in gedit", delegate (string v)
+				{
+					Execute ("gedit", string.Join (" ", entries.Where ((w) => !w.untracked).Select ((w) => w.QuotedFileName).ToArray ()), false, false, false);
+				}
+			},
 			{ "nano", "Open file in nano", delegate (string v)
 				{
 					if (selected == null)
@@ -266,7 +272,7 @@ namespace gui_diff
 					list_dirty = true;
 					foreach (var entry in entries) {
 						if (!entry.untracked) {
-							Execute ("git", "add " + entry.filename);
+							Execute ("git", "add " + entry.QuotedFileName);
 							Console.WriteLine ("Added " + entry.filename);
 						}
 					}
@@ -278,7 +284,7 @@ namespace gui_diff
 					list_dirty = true;
 					foreach (var entry in entries) {
 						if (entry.untracked) {
-							Execute ("git", "add " + entry.filename);
+							Execute ("git", "add " + entry.QuotedFileName);
 							Console.WriteLine ("Added " + entry.filename);
 						}
 					}
