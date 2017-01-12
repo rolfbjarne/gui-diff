@@ -484,6 +484,22 @@ namespace gui_diff
 						list_dirty = true;
 					}
 				},
+				{ "log", "Run 'git log' on the selected file", (v) =>
+					{
+						if (selected == null)
+							throw new DiffException ("You need to select a file first.");
+
+						Execute ("git", "log -- " + selected.QuotedFileName, false, true);
+					}
+				},
+				{ "blame", "Run 'git blame' on the selected file", (v) =>
+					{
+						if (selected == null)
+							throw new DiffException ("You need to select a file first.");
+
+						Execute ("git", "blame -- " + selected.QuotedFileName, false, true);
+					}
+				},
 			};
 
 			do {
