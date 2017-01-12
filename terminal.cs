@@ -492,6 +492,14 @@ namespace gui_diff
 						Execute ("git", "log -- " + selected.QuotedFileName, false, true);
 					}
 				},
+				{ "log --oneline", "Run 'git log --oneline' on the selected file", (v) =>
+					{
+						if (selected == null)
+							throw new DiffException ("You need to select a file first.");
+
+						Execute ("git", "log --oneline -- " + selected.QuotedFileName, false, true);
+					}
+				},
 				{ "blame", "Run 'git blame' on the selected file", (v) =>
 					{
 						if (selected == null)
