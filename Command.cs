@@ -31,62 +31,61 @@ using System.Text;
 
 namespace gui_diff
 {
-		public delegate void CommandAction (string cmd);
-	
-		public class Commands : List<Command>
+	public delegate void CommandAction (string cmd);
+
+	public class Commands : List<Command>
+	{
+		public void Add (string Words, string Help, CommandAction Action)
 		{
-			public void Add (string Words, string Help, CommandAction Action)
-			{
-				Command c = new Command ();
-				c.Words = Words.Split ('|');
-				c.Action = Action;
-				c.Help = Help;
-				base.Add (c);
-			}
+			Command c = new Command ();
+			c.Words = Words.Split ('|');
+			c.Action = Action;
+			c.Help = Help;
+			base.Add (c);
+		}
 
-			public void Help ()
-			{
-				int max_length = 0;
-				foreach (Command c in this)
-					max_length = Math.Max (max_length, string.Join ("|", c.Words).Length);
+		public void Help ()
+		{
+			int max_length = 0;
+			foreach (Command c in this)
+				max_length = Math.Max (max_length, string.Join ("|", c.Words).Length);
 
-				foreach (Command c in this) {
-					Console.WriteLine (" {0,-" + max_length.ToString () + "}: {1}", string.Join ("|", c.Words), c.Help);
-				}
-			}
-
-			public bool Execute (string cmd)
-			{
-				foreach (Command c in this) {
-					if (c.Execute (cmd))
-						return true;
-				}
-				return false;
+			foreach (Command c in this) {
+				Console.WriteLine (" {0,-" + max_length.ToString () + "}: {1}", string.Join ("|", c.Words), c.Help);
 			}
 		}
 
-		public class Command
+		public bool Execute (string cmd)
 		{
-			public string [] Words;
-			public CommandAction Action;
-			public string Help;
+			foreach (Command c in this) {
+				if (c.Execute (cmd))
+					return true;
+			}
+			return false;
+		}
+	}
 
-			public bool Execute (string Word)
-			{
-				foreach (string w in Words) {
-					if (w == Word) {
-						try {
-							Action (Word);
-						} catch (DiffException ex) {
-							Console.WriteLine (ex.Message);
-						} catch (Exception ex) {
-							Console.WriteLine (ex.ToString ());
-						}
-						return true;
+	public class Command
+	{
+		public string [] Words;
+		public CommandAction Action;
+		public string Help;
+
+		public bool Execute (string Word)
+		{
+			foreach (string w in Words) {
+				if (w == Word) {
+					try {
+						Action (Word);
+					} catch (DiffException ex) {
+						Console.WriteLine (ex.Message);
+					} catch (Exception ex) {
+						Console.WriteLine (ex.ToString ());
 					}
+					return true;
 				}
-				return false;
 			}
+			return false;
 		}
+	}
 }
-

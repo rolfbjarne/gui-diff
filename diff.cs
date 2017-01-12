@@ -129,7 +129,7 @@ namespace gui_diff
 		{
 			return new List<string> (Execute (cmd, args).Split (new char [] { (char) 10, (char) 13 }, StringSplitOptions.RemoveEmptyEntries));
 		}
-	
+
 		public string Execute (string cmd, string args)
 		{
 			return Execute (cmd, args, true);
@@ -149,7 +149,7 @@ namespace gui_diff
 		public string Execute (string cmd, string args, bool capture_stdout, bool wait_for_exit, bool use_shell_execute = false)
 		{
 			StringBuilder std = new StringBuilder ();
-			
+
 			using (System.Threading.ManualResetEvent stderr_event = new System.Threading.ManualResetEvent (false)) {
 				using (System.Threading.ManualResetEvent stdout_event = new System.Threading.ManualResetEvent (false)) {
 
@@ -210,7 +210,7 @@ namespace gui_diff
 							if (p.ExitCode != 0)
 								throw new Exception ("Program execution failed (" + p.ExitCode + "): " + Environment.NewLine + std.ToString ());
 							if (verbose) {
-								Console.WriteLine ("export PWD={0}", string.IsNullOrEmpty (p.StartInfo.WorkingDirectory) ? Environment.CurrentDirectory : p.StartInfo.WorkingDirectory	);
+								Console.WriteLine ("export PWD={0}", string.IsNullOrEmpty (p.StartInfo.WorkingDirectory) ? Environment.CurrentDirectory : p.StartInfo.WorkingDirectory);
 								Console.WriteLine ("{0} {1}", cmd, args);
 								Console.WriteLine (std.ToString ());
 							}
@@ -362,15 +362,15 @@ namespace gui_diff
 					Environment.CurrentDirectory = dir;
 				}
 				Console.WriteLine (".git directory: {0}, prefix:  {1}", Environment.CurrentDirectory, PREFIX);
-				
+
 				bool winforms = false;
-				
+
 				if (Environment.OSVersion.Platform == PlatformID.Win32NT) {
 					winforms = true;
 				} else if (args.Length == 1 && args [0] == "-winforms") {
 					winforms = true;
 				}
-				
+
 				if (winforms) {
 					Instance = new WinFormsDiff ();
 				} else {
@@ -400,7 +400,7 @@ namespace gui_diff
 		public bool added;
 		public bool untracked;
 		public bool is_directory;
-		
+
 		public string QuotedFileName {
 			get { return "\"" + filename + "\""; }
 		}
@@ -413,6 +413,4 @@ namespace gui_diff
 		{
 		}
 	}
-
 }
-

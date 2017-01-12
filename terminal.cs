@@ -187,7 +187,7 @@ namespace gui_diff
 
 			Console.WriteLine ("Fixed date in file: {0}", filename);
 		}
-		
+
 		Commands cmds;
 
 		bool Do ()
@@ -199,292 +199,292 @@ namespace gui_diff
 			PrintList ();
 
 			cmds = new Commands ()
-		{
-			{ "h|help|?", "Show this help message", delegate (string v)
-				{
-					cmds.Help ();
-				}
-			},
-			{ "e|edit", "Open file in editor", delegate (string v)
-				{
-					if (selected == null)
-						throw new DiffException ("You need to select a file first.");
-					Execute ("gedit", selected.QuotedFileName);
-				}
-			},
-			{ "gedit", "Open the file in gedit", delegate (string v)
-				{
-					if (selected == null)
-						throw new DiffException ("You need to select a file first.");
-					Execute ("gedit", selected.QuotedFileName, false, false, false);
-				}
-			},
-			{ "geditall", "Open the files in gedit", delegate (string v)
-				{
-					Execute ("gedit", string.Join (" ", entries.Where ((w) => !w.untracked).Select ((w) => w.QuotedFileName).ToArray ()), false, false, false);
-				}
-			},
-			{ "nano", "Open file in nano", delegate (string v)
-				{
-					if (selected == null)
-						throw new DiffException ("You need to select a file first.");
-					Execute ("nano", "-c " + selected.QuotedFileName, false);
-				}
-			},
-			{ "c|changelog", "Edit ChangeLog for the selected file", delegate (string v)
-				{
-					if (selected == null)
-						throw new DiffException ("You need to select a file first.");
-					EditChangeLog (selected);
-					list_dirty = true;
-					PrintList ();
-				}
-			},
-			{ "a|add", "Add file to index", delegate (string v)
-				{
-					if (selected == null)
-						throw new DiffException ("You need to select a file first.");
-					list_dirty = true;
-					Execute ("git", (selected.deleted ? "rm -- " : "add ") + selected.QuotedFileName);
-					PrintList ();
-				}
-			},
-			{ "add+next|an", "Add file to index and go to next file", delegate (string v)
-				{
-					if (selected == null)
-						throw new DiffException ("You need to select a file first.");
-					list_dirty = true;
-					Execute ("git", (selected.deleted ? "rm -- " : "add ") + selected.QuotedFileName);
-					if (selected == null)
-						throw new DiffException ("You need to select a file first.");
-					int idx = entries.IndexOf (selected);
-					if (idx + 1 == entries.Count) {
-						idx = 0;
-					} else {
-						idx++;
+			{
+				{ "h|help|?", "Show this help message", delegate (string v)
+					{
+						cmds.Help ();
 					}
-					selected = entries [idx];
-					ShowDiff (null);
-				}
-			},
-			{ "addall|add -u", "Add all changed files to the index", delegate (string v)
-				{
-					list_dirty = true;
-					foreach (var entry in entries) {
-						if (!entry.untracked) {
-							Execute ("git", "add " + entry.QuotedFileName);
-							Console.WriteLine ("Added " + entry.filename);
+				},
+				{ "e|edit", "Open file in editor", delegate (string v)
+					{
+						if (selected == null)
+							throw new DiffException ("You need to select a file first.");
+						Execute ("gedit", selected.QuotedFileName);
+					}
+				},
+				{ "gedit", "Open the file in gedit", delegate (string v)
+					{
+						if (selected == null)
+							throw new DiffException ("You need to select a file first.");
+						Execute ("gedit", selected.QuotedFileName, false, false, false);
+					}
+				},
+				{ "geditall", "Open the files in gedit", delegate (string v)
+					{
+						Execute ("gedit", string.Join (" ", entries.Where ((w) => !w.untracked).Select ((w) => w.QuotedFileName).ToArray ()), false, false, false);
+					}
+				},
+				{ "nano", "Open file in nano", delegate (string v)
+					{
+						if (selected == null)
+							throw new DiffException ("You need to select a file first.");
+						Execute ("nano", "-c " + selected.QuotedFileName, false);
+					}
+				},
+				{ "c|changelog", "Edit ChangeLog for the selected file", delegate (string v)
+					{
+						if (selected == null)
+							throw new DiffException ("You need to select a file first.");
+						EditChangeLog (selected);
+						list_dirty = true;
+						PrintList ();
+					}
+				},
+				{ "a|add", "Add file to index", delegate (string v)
+					{
+						if (selected == null)
+							throw new DiffException ("You need to select a file first.");
+						list_dirty = true;
+						Execute ("git", (selected.deleted ? "rm -- " : "add ") + selected.QuotedFileName);
+						PrintList ();
+					}
+				},
+				{ "add+next|an", "Add file to index and go to next file", delegate (string v)
+					{
+						if (selected == null)
+							throw new DiffException ("You need to select a file first.");
+						list_dirty = true;
+						Execute ("git", (selected.deleted ? "rm -- " : "add ") + selected.QuotedFileName);
+						if (selected == null)
+							throw new DiffException ("You need to select a file first.");
+						int idx = entries.IndexOf (selected);
+						if (idx + 1 == entries.Count) {
+							idx = 0;
+						} else {
+							idx++;
+						}
+						selected = entries [idx];
+						ShowDiff (null);
+					}
+				},
+				{ "addall|add -u", "Add all changed files to the index", delegate (string v)
+					{
+						list_dirty = true;
+						foreach (var entry in entries) {
+							if (!entry.untracked) {
+								Execute ("git", "add " + entry.QuotedFileName);
+								Console.WriteLine ("Added " + entry.filename);
+							}
+						}
+						PrintList ();
+					}
+				},
+				{ "addalluntracked", "Add all untracked files to the index", delegate (string v)
+					{
+						list_dirty = true;
+						foreach (var entry in entries) {
+							if (entry.untracked) {
+								Execute ("git", "add " + entry.QuotedFileName);
+								Console.WriteLine ("Added " + entry.filename);
+							}
+						}
+						PrintList ();
+					}
+				},
+				{ "ac|addc", "Add file to index and edit changelog", delegate (string v)
+					{
+						if (selected == null)
+							throw new DiffException ("You need to select a file first.");
+						list_dirty = true;
+						Execute ("git", (selected.deleted ? "rm -- " : "add ") + selected.QuotedFileName);
+						EditChangeLog (selected);
+						PrintList ();
+					}
+				},
+				{ "p|add -p", "Add file to index in interactive mode", delegate (string v)
+					{
+						if (selected == null)
+							throw new DiffException ("You need to select a file first.");
+						list_dirty = true;
+						Execute ("git", "add -p " + selected.QuotedFileName, false);
+					}
+				},
+				{ "ci|gitci|git ci", "Commit using gitci", delegate (string v)
+					{
+						Execute ("gitci", "", false);
+						list_dirty = true;
+						PrintList ();
+					}
+				},
+				{ "commit", "Commit using git (git commit)", delegate (string v)
+					{
+						list_dirty = true;
+						Execute ("git", "commit", false);
+						PrintList ();
+					}
+				},
+				{ "fixdate", "Fix the date(s) in the selected ChangeLog", delegate (string v)
+					{
+						if (selected == null)
+							throw new DiffException ("You need to select a file first.");
+						FixDate (selected.filename);
+						ShowDiff (null);
+					}
+				},
+				{ "fixdates", "Fix the date(s) in all the ChangeLogs", delegate (string v)
+					{
+						foreach (var entry in entries) {
+							if (entry.filename.EndsWith ("ChangeLog"))
+								FixDate (entry.filename);
 						}
 					}
-					PrintList ();
-				}
-			},
-			{ "addalluntracked", "Add all untracked files to the index", delegate (string v)
-				{
-					list_dirty = true;
-					foreach (var entry in entries) {
-						if (entry.untracked) {
-							Execute ("git", "add " + entry.QuotedFileName);
-							Console.WriteLine ("Added " + entry.filename);
+				},
+				{ "d|diff", "Show the diff for the selected file", delegate (string v)
+					{
+						ShowDiff (false);
+					}
+				},
+				{ "md|monoport diff", "Monoport the diff of the selected file", delegate (string v)
+					{
+						ShowDiff (false, true);
+					}
+				},
+				{ "msd|monoport sdiff", "Monoport the staged diff of the selected file", delegate (string v)
+					{
+						ShowDiff (true, true);
+					}
+				},
+				{ "sd|diff --staged|stageddiff|staged diff", "Show the staged diff", delegate (string v)
+					{
+						ShowDiff (true);
+					}
+				},
+				{ "rm|delete", "Delete the selected files", delegate (string v)
+					{
+						if (selected == null)
+							throw new DiffException ("You need to select a file first.");
+						list_dirty = true;
+						if (selected.untracked) {
+							Execute ("rm", selected.QuotedFileName);
+						} else {
+							Execute ("git", "rm -f " + selected.QuotedFileName);
+						}
+						PrintList ();
+					}
+				},
+				{ "n|next", "Select the next file", delegate (string v)
+					{
+						if (selected == null)
+							throw new DiffException ("You need to select a file first.");
+						int idx = entries.IndexOf (selected);
+						if (idx + 1 == entries.Count) {
+							idx = 0;
+						} else {
+							idx++;
+						}
+						selected = entries [idx];
+						ShowDiff (null);
+					}
+				},
+				{ "amend", "Executes git commit --amend", delegate (string v)
+					{
+						list_dirty = true;
+						Execute ("git", "commit --amend", false);
+						PrintList ();
+					}
+				},
+				{ "reset", "Executes git reset on the selected file", delegate (string v)
+					{
+						list_dirty = true;
+						if (selected == null) {
+							Execute ("git", "reset");
+						} else {
+							Execute ("git", "reset -- " + selected.QuotedFileName);
 						}
 					}
-					PrintList ();
-				}
-			},
-			{ "ac|addc", "Add file to index and edit changelog", delegate (string v)
-				{
-					if (selected == null)
-						throw new DiffException ("You need to select a file first.");
-					list_dirty = true;
-					Execute ("git", (selected.deleted ? "rm -- " : "add ") + selected.QuotedFileName);
-					EditChangeLog (selected);
-					PrintList ();
-				}
-			},
-			{ "p|add -p", "Add file to index in interactive mode", delegate (string v)
-				{
-					if (selected == null)
-						throw new DiffException ("You need to select a file first.");
-					list_dirty = true;
-					Execute ("git", "add -p " + selected.QuotedFileName, false);
-				}
-			},
-			{ "ci|gitci|git ci", "Commit using gitci", delegate (string v)
-				{
-					Execute ("gitci", "", false);
-					list_dirty = true;
-					PrintList ();
-				}
-			},
-			{ "commit", "Commit using git (git commit)", delegate (string v)
-				{
-					list_dirty = true;
-					Execute ("git", "commit", false);
-					PrintList ();
-				}
-			},
-			{ "fixdate", "Fix the date(s) in the selected ChangeLog", delegate (string v)
-				{
-					if (selected == null)
-						throw new DiffException ("You need to select a file first.");
-					FixDate (selected.filename);
-					ShowDiff (null);
-				}
-			},
-			{ "fixdates", "Fix the date(s) in all the ChangeLogs", delegate (string v)
-				{
-					foreach (var entry in entries) {
-						if (entry.filename.EndsWith ("ChangeLog"))
-							FixDate (entry.filename);
+				},
+				{ "checkout", "Checks out the selected file (equivalent to svn revert)", delegate (string v)
+					{
+						if (selected == null)
+							throw new DiffException ("You need to select a file first.");
+						list_dirty = true;
+						Execute ("git", "checkout " + selected.QuotedFileName);
+						PrintList ();
 					}
-				}
-			},
-			{ "d|diff", "Show the diff for the selected file", delegate (string v)
-				{
-					ShowDiff (false);
-				}
-			},
-			{ "md|monoport diff", "Monoport the diff of the selected file", delegate (string v)
-				{
-					ShowDiff (false, true);
-				}
-			},
-			{ "msd|monoport sdiff", "Monoport the staged diff of the selected file", delegate (string v)
-				{
-					ShowDiff (true, true);
-				}
-			},
-			{ "sd|diff --staged|stageddiff|staged diff", "Show the staged diff", delegate (string v)
-				{
-					ShowDiff (true);
-				}
-			},
-			{ "rm|delete", "Delete the selected files", delegate (string v)
-				{
-					if (selected == null)
-						throw new DiffException ("You need to select a file first.");
-					list_dirty = true;
-					if (selected.untracked) {
-						Execute ("rm", selected.QuotedFileName);
-					} else {
-						Execute ("git", "rm -f " + selected.QuotedFileName);
+				},
+				{ "meld", "View the selected file in meld", delegate (string v)
+					{
+						if (selected == null)
+							throw new DiffException ("You need to select a file first.");
+						list_dirty = true;
+						Execute ("muld", Path.Combine (Environment.CurrentDirectory, selected.QuotedFileName), false);
 					}
-					PrintList ();
-				}
-			},
-			{ "n|next", "Select the next file", delegate (string v)
-				{
-					if (selected == null)
-						throw new DiffException ("You need to select a file first.");
-					int idx = entries.IndexOf (selected);
-					if (idx + 1 == entries.Count) {
-						idx = 0;
-					} else {
-						idx++;
+				},
+				{ "gui", "Run git gui", delegate (string v)
+					{
+						Execute ("git", "gui", false, false);
 					}
-					selected = entries [idx];
-					ShowDiff (null);
-				}
-			},
-			{ "amend", "Executes git commit --amend", delegate (string v)
-				{
-					list_dirty = true;
-					Execute ("git", "commit --amend", false);
-					PrintList ();
-				}
-			},
-			{ "reset", "Executes git reset on the selected file", delegate (string v)
-				{
-					list_dirty = true;
-					if (selected == null) {
-						Execute ("git", "reset");
-					} else {
-						Execute ("git", "reset -- " + selected.QuotedFileName);
+				},
+				{ "r|refresh", "Refresh the list", delegate (string v)
+					{
+						list_dirty = true;
+						PrintList ();
 					}
-				}
-			},
-			{ "checkout", "Checks out the selected file (equivalent to svn revert)", delegate (string v)
-				{
-					if (selected == null)
-						throw new DiffException ("You need to select a file first.");
-					list_dirty = true;
-					Execute ("git", "checkout " + selected.QuotedFileName);
-					PrintList ();
-				}
-			},
-			{ "meld", "View the selected file in meld", delegate (string v)
-				{
-					if (selected == null)
-						throw new DiffException ("You need to select a file first.");
-					list_dirty = true;
-					Execute ("muld", Path.Combine (Environment.CurrentDirectory, selected.QuotedFileName), false);
-				}
-			},
-			{ "gui", "Run git gui", delegate (string v)
-				{
-					Execute ("git", "gui", false, false);
-				}
-			},
-			{ "r|refresh", "Refresh the list", delegate (string v)
-				{
-					list_dirty = true;
-					PrintList ();
-				}
-			},
-			{ "l|list", "Show the list again", delegate (string v)
-				{
-					PrintList ();
-				}
-			},
-			{ "q|quit|QUIT", "Quit", delegate (string v)
-				{
-					Environment.Exit (0);
-				}
-			},
-			{ "fixeol", "Fix eol-style for the all the files which have eol-style problems", delegate (string v)
-				{
-					for (int i = 0; i < entries.Count; i++) {
-						if (!entries [i].messed_up_eol)
-							continue;
-						Fixeol (entries [i]);
+				},
+				{ "l|list", "Show the list again", delegate (string v)
+					{
+						PrintList ();
 					}
-					list_dirty = true;
-					PrintList ();
-				}
-			},
-			{ "dos2unix|dosunix", "Change the eol-style to unix for the selected file", delegate (string v)
-				{
-					if (selected == null)
-						throw new DiffException ("You need to select a file first.");
-					Dos2Unix (selected.filename);
-					ShowDiff (null);
-				}
-			},
-			{ "unix2dos|unixdos", "Change the eol-style to dos for the selected file", delegate (string v)
-				{
-					if (selected == null)
-						throw new DiffException ("You need to select a file first.");
-					Unix2Dos (selected.filename);
-					ShowDiff (null);
-				}
-			},
-			{ "i|ignore", "Add file to .gitignore in current directory", delegate (string v)
-				{
-					if (selected == null)
-						throw new DiffException ("You need to select a file first.");
-					File.AppendAllText (Path.Combine (Path.GetDirectoryName (selected.filename), ".gitignore"), Path.GetFileName (selected.filename) + '\n');
-					list_dirty = true;
-				}
-			},
-			{ "ignore-extension", "Add extension of file to .gitignore in current directory", delegate (string v)
-				{
-					if (selected == null)
-						throw new DiffException ("You need to select a file first.");
-					File.AppendAllText (Path.Combine (Path.GetDirectoryName (selected.filename), ".gitignore"), "*" + Path.GetExtension (selected.filename) + '\n');
-					list_dirty = true;
-				}
-			},
-		};
+				},
+				{ "q|quit|QUIT", "Quit", delegate (string v)
+					{
+						Environment.Exit (0);
+					}
+				},
+				{ "fixeol", "Fix eol-style for the all the files which have eol-style problems", delegate (string v)
+					{
+						for (int i = 0; i < entries.Count; i++) {
+							if (!entries [i].messed_up_eol)
+								continue;
+							Fixeol (entries [i]);
+						}
+						list_dirty = true;
+						PrintList ();
+					}
+				},
+				{ "dos2unix|dosunix", "Change the eol-style to unix for the selected file", delegate (string v)
+					{
+						if (selected == null)
+							throw new DiffException ("You need to select a file first.");
+						Dos2Unix (selected.filename);
+						ShowDiff (null);
+					}
+				},
+				{ "unix2dos|unixdos", "Change the eol-style to dos for the selected file", delegate (string v)
+					{
+						if (selected == null)
+							throw new DiffException ("You need to select a file first.");
+						Unix2Dos (selected.filename);
+						ShowDiff (null);
+					}
+				},
+				{ "i|ignore", "Add file to .gitignore in current directory", delegate (string v)
+					{
+						if (selected == null)
+							throw new DiffException ("You need to select a file first.");
+						File.AppendAllText (Path.Combine (Path.GetDirectoryName (selected.filename), ".gitignore"), Path.GetFileName (selected.filename) + '\n');
+						list_dirty = true;
+					}
+				},
+				{ "ignore-extension", "Add extension of file to .gitignore in current directory", delegate (string v)
+					{
+						if (selected == null)
+							throw new DiffException ("You need to select a file first.");
+						File.AppendAllText (Path.Combine (Path.GetDirectoryName (selected.filename), ".gitignore"), "*" + Path.GetExtension (selected.filename) + '\n');
+						list_dirty = true;
+					}
+				},
+			};
 
 			do {
 				PrintCommands ();
@@ -506,7 +506,7 @@ namespace gui_diff
 				}
 
 				bool executed = cmds.Execute (cmd);
-				
+
 				if (executed)
 					continue;
 
@@ -604,7 +604,7 @@ namespace gui_diff
 						Console.Write ("    ");
 					}
 				}
-	
+
 				if (entries.Count <= 9) {
 					Console.Write ("{0,-1} ", i + 1);
 				} else if (entries.Count <= 99) {
@@ -622,11 +622,10 @@ namespace gui_diff
 				Console.Write (entries [i].filename.Substring (PREFIX.Length));
 				Console.ResetColor ();
 
-				if (entries[i].is_directory)
+				if (entries [i].is_directory)
 					Console.WriteLine (" [DIRECTORY]");
 				Console.WriteLine ();
 			}
 		}
 	}
 }
-
