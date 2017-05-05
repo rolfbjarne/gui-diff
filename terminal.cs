@@ -334,7 +334,7 @@ namespace gui_diff
 				{ "fixdates", "Fix the date(s) in all the ChangeLogs", delegate (string v)
 					{
 						foreach (var entry in entries) {
-							if (entry.filename.EndsWith ("ChangeLog"))
+							if (entry.filename.EndsWith ("ChangeLog", StringComparison.Ordinal))
 								FixDate (entry.filename);
 						}
 					}
