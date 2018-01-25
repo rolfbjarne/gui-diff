@@ -44,6 +44,17 @@ namespace gui_diff
 			ShowDiff (staged, false);
 		}
 
+		void SelectNextFile ()
+		{
+			int idx = entries.IndexOf (selected);
+			if (idx + 1 == entries.Count) {
+				idx = 0;
+			} else {
+				idx++;
+			}
+			selected = entries [idx];
+		}
+
 		void ShowDiff (bool? staged, bool monoport)
 		{
 			string diff = null;
@@ -257,13 +268,7 @@ namespace gui_diff
 						Execute ("git", (selected.deleted ? "rm -- " : "add ") + selected.QuotedFileName);
 						if (selected == null)
 							throw new DiffException ("You need to select a file first.");
-						int idx = entries.IndexOf (selected);
-						if (idx + 1 == entries.Count) {
-							idx = 0;
-						} else {
-							idx++;
-						}
-						selected = entries [idx];
+						SelectNextFile ();
 						ShowDiff (null);
 					}
 				},
@@ -376,13 +381,7 @@ namespace gui_diff
 					{
 						if (selected == null)
 							throw new DiffException ("You need to select a file first.");
-						int idx = entries.IndexOf (selected);
-						if (idx + 1 == entries.Count) {
-							idx = 0;
-						} else {
-							idx++;
-						}
-						selected = entries [idx];
+						SelectNextFile ();
 						ShowDiff (null);
 					}
 				},
@@ -410,6 +409,16 @@ namespace gui_diff
 						list_dirty = true;
 						Execute ("git", "checkout " + selected.QuotedFileName);
 						PrintList ();
+					}
+				},
+				{ "checkout+next|chn", "Checks out the selected file and advances to the next file", delegate (string v)
+					{
+						if (selected == null)
+							throw new DiffException ("You need to select a file first.");
+						list_dirty = true;
+						Execute ("git", "checkout " + selected.QuotedFileName);
+						SelectNextFile ();
+						ShowDiff (null);
 					}
 				},
 				{ "meld", "View the selected file in meld", delegate (string v)
