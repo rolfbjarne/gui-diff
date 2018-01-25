@@ -2,6 +2,7 @@
 *.suo
 *.exe
 *.mdb
+*.pdb
 bin
 obj
 *.resources

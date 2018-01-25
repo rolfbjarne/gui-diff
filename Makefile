@@ -3,12 +3,12 @@ REFERENCES = -r:System.Windows.Forms.dll -r:System.Drawing.dll -r:System.Data.dl
 
 gui-diff.exe: $(SOURCES) Makefile
 	@msbuild
-	@cp bin/Debug/gui-diff.exe bin/Debug/gui-diff.exe.mdb .
+	@cp bin/Debug/gui-diff.exe bin/Debug/gui-diff.pdb .
 
 all: gui-diff.exe
 
 install: gui-diff.exe
 	@echo "[INSTALL] gui-diff"
-	@cp gui-diff gui-diff.exe gui-diff.exe.mdb ~/bin/
+	@cp gui-diff gui-diff.exe gui-diff.pdb ~/bin/
 	
 	
