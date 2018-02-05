@@ -76,18 +76,14 @@ namespace gui_diff
 			List<string> diff = ExecuteToLines ("git", "diff --name-only --ignore-submodules");
 			List<string> staged = ExecuteToLines ("git", "diff --name-only --staged");
 			List<string> untracked = ExecuteToLines ("git", "ls-files --other --exclude-standard");
-			List<string> all = new List<string> (diff);
+			var all = new HashSet<string> (diff);
 
 			selected = null;
-			foreach (var s in staged) {
-				if (!all.Contains (s))
-					all.Add (s);
-			}
-			all.Sort ();
+			all.UnionWith (staged);
 
 			entries.Clear ();
 			foreach (var file in all) {
-				if (PREFIX.Length > 1 && !file.StartsWith (PREFIX))
+				if (PREFIX.Length > 1 && !file.StartsWith (PREFIX, StringComparison.Ordinal))
 					continue;
 				Entry entry = new Entry ();
 				entry.filename = file;
@@ -114,13 +110,33 @@ namespace gui_diff
 				entries.Add (entry);
 			}
 			foreach (var file in untracked) {
-				if (PREFIX.Length > 1 && !file.StartsWith (PREFIX))
+				if (PREFIX.Length > 1 && !file.StartsWith (PREFIX, StringComparison.Ordinal))
 					continue;
 				Entry entry = new Entry ();
 				entry.filename = file;
 				entry.untracked = true;
 				entries.Add (entry);
 			}
+
+			entries.Sort ((a, b) =>
+			{
+				// Fully staged files at the top
+				if (a.staged_whole != b.staged_whole)
+					return a.staged_whole ? -1 : 1;
+
+				// Then untracked files
+				if (a.untracked != b.untracked)
+					return a.untracked ? -1 : 1;
+
+				// Partially staged (unmerged) at the bottom
+				if (a.staged != b.staged)
+					return a.staged ? 1 : -1;
+
+				//Console.WriteLine ($"Sorting {a.filename} vs {b.filename}: a.staged: {a.staged} b.staged: {b.staged} a.staged_whole: {a.staged_whole} b.staged_whole: {b.staged_whole}");
+
+				// Finally sort by filename
+				return string.CompareOrdinal (a.filename, b.filename);
+			});
 
 			list_dirty = false;
 		}
