@@ -124,13 +124,13 @@ namespace gui_diff
 				if (a.staged_whole != b.staged_whole)
 					return a.staged_whole ? -1 : 1;
 
-				// Then untracked files
-				if (a.untracked != b.untracked)
-					return a.untracked ? -1 : 1;
-
-				// Partially staged (unmerged) at the bottom
+				// Then staged (unmerged)
 				if (a.staged != b.staged)
-					return a.staged ? 1 : -1;
+					return a.staged ? -1 : 1;
+
+				// Untracked files at the bottom
+				if (a.untracked != b.untracked)
+					return a.untracked ? 1 : -1;
 
 				//Console.WriteLine ($"Sorting {a.filename} vs {b.filename}: a.staged: {a.staged} b.staged: {b.staged} a.staged_whole: {a.staged_whole} b.staged_whole: {b.staged_whole}");
 
