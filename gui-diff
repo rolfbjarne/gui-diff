@@ -2,4 +2,4 @@
 
 DIR=`dirname $0`
 
-GIT_PAGER= mono --debug $MONO_OPTIONS $DIR/gui-diff.exe "$@"
+xGIT_PAGER= mono --debug $MONO_OPTIONS $DIR/gui-diff.exe "$@"
