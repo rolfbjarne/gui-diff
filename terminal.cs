@@ -201,6 +201,14 @@ namespace gui_diff
 
 		Commands cmds;
 
+		void Add (IEnumerable<Entry> values)
+		{
+			foreach (var entry_batch in values.Batch (20)) {
+				Execute ("git", "add -- " + string.Join (" ", entry_batch.Select ((e) => e.QuotedFileName)));
+				Console.WriteLine ("Added " + string.Join (", ", entry_batch.Select ((e) => e.filename)));
+			}
+		}
+
 		bool Do ()
 		{
 			string last_cmd = null;
@@ -275,33 +283,32 @@ namespace gui_diff
 				{ "addall|add -u", "Add all changed files to the index", delegate (string v)
 					{
 						list_dirty = true;
-						foreach (var entry in entries) {
-							if (!entry.untracked) {
-								Execute ("git", "add " + entry.QuotedFileName);
-								Console.WriteLine ("Added " + entry.filename);
-							}
-						}
+						Add (entries.Where ((e) => !e.untracked));
 						PrintList ();
 					}
 				},
 				{ "addalluntracked", "Add all untracked files to the index", delegate (string v)
 					{
 						list_dirty = true;
-						foreach (var entry in entries) {
-							if (entry.untracked) {
-								Execute ("git", "add " + entry.QuotedFileName);
-								Console.WriteLine ("Added " + entry.filename);
-							}
-						}
+						Add (entries.Where ((e) => e.untracked));
 						PrintList ();
 					}
 				},
+
+				{ "addall+untracked|addall+u", "Add all changed + all untracked files to the index", delegate (string v)
+					{
+						list_dirty = true;
+						Add (entries);
+						PrintList ();
+					}
+				},
+
 				{ "ac|addc", "Add file to index and edit changelog", delegate (string v)
 					{
 						if (selected == null)
 							throw new DiffException ("You need to select a file first.");
 						list_dirty = true;
-						Execute ("git", (selected.deleted ? "rm -- " : "add ") + selected.QuotedFileName);
+						Execute ("git", (selected.deleted ? "rm -- " : "add -- ") + selected.QuotedFileName);
 						EditChangeLog (selected);
 						PrintList ();
 					}
