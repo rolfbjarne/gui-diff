@@ -203,7 +203,9 @@ namespace gui_diff
 
 		void Add (IEnumerable<Entry> values)
 		{
-			foreach (var entry_batch in values.Batch (20)) {
+			var not_staged_deleted = values.Where ((v) => !(v.deleted && v.staged));
+
+			foreach (var entry_batch in not_staged_deleted.Batch (20)) {
 				Execute ("git", "add -- " + string.Join (" ", entry_batch.Select ((e) => e.QuotedFileName)));
 				Console.WriteLine ("Added " + string.Join (", ", entry_batch.Select ((e) => e.filename)));
 			}
@@ -264,7 +266,8 @@ namespace gui_diff
 						if (selected == null)
 							throw new DiffException ("You need to select a file first.");
 						list_dirty = true;
-						Execute ("git", (selected.deleted ? "rm -- " : "add ") + selected.QuotedFileName);
+						if (!(selected.deleted && selected.staged))
+							Execute ("git", (selected.deleted ? "rm -- " : "add ") + selected.QuotedFileName);
 						PrintList ();
 					}
 				},
