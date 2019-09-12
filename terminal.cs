@@ -316,6 +316,15 @@ namespace gui_diff
 						PrintList ();
 					}
 				},
+				{ "and|addanddiff", "Add file to index and immediately show a diff of the staged file", delegate (string v)
+					{
+						if (selected == null)
+							throw new DiffException ("You need to select a file first.");
+						list_dirty = true;
+						Execute ("git", (selected.deleted ? "rm -- " : "add -- ") + selected.QuotedFileName);
+						ShowDiff (true);
+					}
+				},
 				{ "p|add -p", "Add file to index in interactive mode", delegate (string v)
 					{
 						if (selected == null)
