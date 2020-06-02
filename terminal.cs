@@ -536,6 +536,28 @@ namespace gui_diff
 						Execute ("git", "blame -- " + selected.QuotedFileName, false, true);
 					}
 				},
+				{ "commit *", "Commit using the specified commit message", (v) =>
+					{
+						var msg = v.Substring ("commit ".Length).Trim ();
+						if (msg.Length == 0)
+							throw new DiffException ("Commit message is empty");
+
+						if (selected != null)
+							Execute ("git", "add -- " + selected.QuotedFileName, false, true);
+						Execute ("git", $"commit -m \"{msg}\"", false, true);
+						list_dirty = true;
+						PrintList ();
+					}
+				},
+				{ "z", "Amend HEAD with the current staged changes", (v) =>
+					{
+						if (selected != null)
+							Execute ("git", "add -- " + selected.QuotedFileName, false, true);
+						Execute ("git", $"commit --amend -C HEAD", false, true);
+						list_dirty = true;
+						PrintList ();
+					}
+				},
 			};
 
 			do {

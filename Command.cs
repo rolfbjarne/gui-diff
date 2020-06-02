@@ -57,6 +57,9 @@ namespace gui_diff
 
 		public bool Execute (string cmd)
 		{
+			if (string.IsNullOrEmpty (cmd))
+				return false;
+			
 			foreach (Command c in this) {
 				if (c.Execute (cmd))
 					return true;
@@ -74,7 +77,13 @@ namespace gui_diff
 		public bool Execute (string Word)
 		{
 			foreach (string w in Words) {
-				if (w == Word) {
+				var match = w == Word;
+				if (!match && w [w.Length - 1] == '*') {
+					var submatch = w.Substring (0, w.Length - 1);
+					match = Word.StartsWith (submatch, StringComparison.Ordinal);
+				}
+				// Console.WriteLine ("Matching: '{0}' -> '{1}': {2}", w, Word, match);
+				if (match) {
 					try {
 						Action (Word);
 					} catch (DiffException ex) {
