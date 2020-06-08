@@ -416,8 +416,13 @@ namespace gui_diff
 						list_dirty = true;
 						if (selected == null) {
 							Execute ("git", "reset");
+							PrintList ();
 						} else {
 							Execute ("git", "reset -- " + selected.QuotedFileName);
+							var selected_file = selected.filename;
+							RefreshList ();
+							selected = entries.Single (v => v.filename == selected_file);
+							ShowDiff (null);
 						}
 					}
 				},
@@ -485,6 +490,9 @@ namespace gui_diff
 						if (selected == null)
 							throw new DiffException ("You need to select a file first.");
 						Dos2Unix (selected.filename);
+						if (selected.staged_whole)
+							Execute ("git", "add " + selected.QuotedFileName);
+						list_dirty = true;
 						ShowDiff (null);
 					}
 				},
