@@ -236,7 +236,7 @@ namespace gui_diff
 				{ "gedit", "Open the file in gedit", delegate (string v)
 					{
 						if (selected == null)
-							throw new DiffException ("You need to select a file first.");
+							throw new DiffException ("You need to select a file first (or use geditall to open all files in gedit)");
 						Execute ("gedit", selected.QuotedFileName, false, false, false);
 					}
 				},
