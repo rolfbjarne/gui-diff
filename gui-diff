@@ -1,5 +1,5 @@
 #!/bin/bash -e
 
-DIR=`dirname $0`
+DIR="%DIR%"
 
-xGIT_PAGER= mono --debug $MONO_OPTIONS $DIR/gui-diff.exe "$@"
+xGIT_PAGER= mono --debug $MONO_OPTIONS $DIR/bin/Debug/gui-diff.exe "$@"

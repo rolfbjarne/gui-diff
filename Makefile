@@ -1,14 +1,10 @@
 SOURCES = $(wildcard *.cs) $(wildcard */*.cs)
-REFERENCES = -r:System.Windows.Forms.dll -r:System.Drawing.dll -r:System.Data.dll -r:System.Web.dll
 
-gui-diff.exe: $(SOURCES) Makefile
+bin/Debug/gui-diff.exe: $(SOURCES) Makefile
 	@msbuild
-	@cp bin/Debug/gui-diff.exe bin/Debug/gui-diff.pdb .
 
-all: gui-diff.exe
+all: bin/Debug/gui-diff.exe
 
-install: gui-diff.exe
+install: gui-diff bin/Debug/gui-diff.exe
 	@echo "[INSTALL] gui-diff"
-	@cp gui-diff gui-diff.exe gui-diff.pdb ~/bin/
-	
-	
+	@sed 's@%DIR%@$(CURDIR)@' gui-diff > ~/bin/gui-diff
