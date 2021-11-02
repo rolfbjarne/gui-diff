@@ -211,6 +211,17 @@ namespace gui_diff
 			}
 		}
 
+		Entry GetSelectedFile ()
+		{
+			if (selected != null)
+				return selected;
+
+			if (entries.Count == 1)
+				return entries [0];
+
+			throw new DiffException ("You need to select a file first.");
+		}
+
 		bool Do ()
 		{
 			string last_cmd = null;
@@ -228,15 +239,13 @@ namespace gui_diff
 				},
 				{ "e|edit", "Open file in editor", delegate (string v)
 					{
-						if (selected == null)
-							throw new DiffException ("You need to select a file first.");
+						var selected = GetSelectedFile ();
 						Execute ("gedit", selected.QuotedFileName);
 					}
 				},
 				{ "gedit", "Open the file in gedit", delegate (string v)
 					{
-						if (selected == null)
-							throw new DiffException ("You need to select a file first (or use geditall to open all files in gedit)");
+						var selected = GetSelectedFile ();
 						Execute ("gedit", selected.QuotedFileName, false, false, false);
 					}
 				},
@@ -247,15 +256,13 @@ namespace gui_diff
 				},
 				{ "nano", "Open file in nano", delegate (string v)
 					{
-						if (selected == null)
-							throw new DiffException ("You need to select a file first.");
+						var selected = GetSelectedFile ();
 						Execute ("nano", "-c " + selected.QuotedFileName, false);
 					}
 				},
 				{ "c|changelog", "Edit ChangeLog for the selected file", delegate (string v)
 					{
-						if (selected == null)
-							throw new DiffException ("You need to select a file first.");
+						var selected = GetSelectedFile ();
 						EditChangeLog (selected);
 						list_dirty = true;
 						PrintList ();
@@ -263,8 +270,7 @@ namespace gui_diff
 				},
 				{ "a|add", "Add file to index", delegate (string v)
 					{
-						if (selected == null)
-							throw new DiffException ("You need to select a file first.");
+						var selected = GetSelectedFile ();
 						list_dirty = true;
 						if (!(selected.deleted && selected.staged))
 							Execute ("git", (selected.deleted ? "rm -- " : "add ") + selected.QuotedFileName);
@@ -273,8 +279,7 @@ namespace gui_diff
 				},
 				{ "add+next|an", "Add file to index and go to next file", delegate (string v)
 					{
-						if (selected == null)
-							throw new DiffException ("You need to select a file first.");
+						var selected = GetSelectedFile ();
 						list_dirty = true;
 						Execute ("git", (selected.deleted ? "rm -- " : "add ") + selected.QuotedFileName);
 						if (selected == null)
@@ -308,8 +313,7 @@ namespace gui_diff
 
 				{ "ac|addc", "Add file to index and edit changelog", delegate (string v)
 					{
-						if (selected == null)
-							throw new DiffException ("You need to select a file first.");
+						var selected = GetSelectedFile ();
 						list_dirty = true;
 						Execute ("git", (selected.deleted ? "rm -- " : "add -- ") + selected.QuotedFileName);
 						EditChangeLog (selected);
@@ -318,8 +322,7 @@ namespace gui_diff
 				},
 				{ "and|addanddiff", "Add file to index and immediately show a diff of the staged file", delegate (string v)
 					{
-						if (selected == null)
-							throw new DiffException ("You need to select a file first.");
+						var selected = GetSelectedFile ();
 						list_dirty = true;
 						Execute ("git", (selected.deleted ? "rm -- " : "add -- ") + selected.QuotedFileName);
 						ShowDiff (true);
@@ -327,8 +330,7 @@ namespace gui_diff
 				},
 				{ "p|add -p", "Add file to index in interactive mode", delegate (string v)
 					{
-						if (selected == null)
-							throw new DiffException ("You need to select a file first.");
+						var selected = GetSelectedFile ();
 						list_dirty = true;
 						Execute ("git", "add -p " + selected.QuotedFileName, false);
 					}
@@ -349,8 +351,7 @@ namespace gui_diff
 				},
 				{ "fixdate", "Fix the date(s) in the selected ChangeLog", delegate (string v)
 					{
-						if (selected == null)
-							throw new DiffException ("You need to select a file first.");
+						var selected = GetSelectedFile ();
 						FixDate (selected.filename);
 						ShowDiff (null);
 					}
@@ -385,8 +386,7 @@ namespace gui_diff
 				},
 				{ "rm|delete", "Delete the selected files", delegate (string v)
 					{
-						if (selected == null)
-							throw new DiffException ("You need to select a file first.");
+						var selected = GetSelectedFile ();
 						list_dirty = true;
 						if (selected.untracked) {
 							Execute ("rm", selected.QuotedFileName);
@@ -398,8 +398,7 @@ namespace gui_diff
 				},
 				{ "n|next", "Select the next file", delegate (string v)
 					{
-						if (selected == null)
-							throw new DiffException ("You need to select a file first.");
+						var selected = GetSelectedFile ();
 						SelectNextFile ();
 						ShowDiff (null);
 					}
@@ -428,8 +427,7 @@ namespace gui_diff
 				},
 				{ "checkout", "Checks out the selected file (equivalent to svn revert)", delegate (string v)
 					{
-						if (selected == null)
-							throw new DiffException ("You need to select a file first.");
+						var selected = GetSelectedFile ();
 						list_dirty = true;
 						Execute ("git", "checkout " + selected.QuotedFileName);
 						PrintList ();
@@ -437,8 +435,7 @@ namespace gui_diff
 				},
 				{ "checkout+next|chn", "Checks out the selected file and advances to the next file", delegate (string v)
 					{
-						if (selected == null)
-							throw new DiffException ("You need to select a file first.");
+						var selected = GetSelectedFile ();
 						list_dirty = true;
 						Execute ("git", "checkout " + selected.QuotedFileName);
 						SelectNextFile ();
@@ -447,8 +444,7 @@ namespace gui_diff
 				},
 				{ "meld", "View the selected file in meld", delegate (string v)
 					{
-						if (selected == null)
-							throw new DiffException ("You need to select a file first.");
+						var selected = GetSelectedFile ();
 						list_dirty = true;
 						Execute ("muld", Path.Combine (Environment.CurrentDirectory, selected.QuotedFileName), false);
 					}
@@ -487,8 +483,7 @@ namespace gui_diff
 				},
 				{ "dos2unix|dosunix", "Change the eol-style to unix for the selected file", delegate (string v)
 					{
-						if (selected == null)
-							throw new DiffException ("You need to select a file first.");
+						var selected = GetSelectedFile ();
 						Dos2Unix (selected.filename);
 						if (selected.staged_whole)
 							Execute ("git", "add " + selected.QuotedFileName);
@@ -498,49 +493,40 @@ namespace gui_diff
 				},
 				{ "unix2dos|unixdos", "Change the eol-style to dos for the selected file", delegate (string v)
 					{
-						if (selected == null)
-							throw new DiffException ("You need to select a file first.");
+						var selected = GetSelectedFile ();
 						Unix2Dos (selected.filename);
 						ShowDiff (null);
 					}
 				},
 				{ "i|ignore", "Add file to .gitignore in current directory", delegate (string v)
 					{
-						if (selected == null)
-							throw new DiffException ("You need to select a file first.");
+						var selected = GetSelectedFile ();
 						File.AppendAllText (Path.Combine (Path.GetDirectoryName (selected.filename), ".gitignore"), Path.GetFileName (selected.filename) + '\n');
 						list_dirty = true;
 					}
 				},
 				{ "ignore-extension", "Add extension of file to .gitignore in current directory", delegate (string v)
 					{
-						if (selected == null)
-							throw new DiffException ("You need to select a file first.");
+						var selected = GetSelectedFile ();
 						File.AppendAllText (Path.Combine (Path.GetDirectoryName (selected.filename), ".gitignore"), "*" + Path.GetExtension (selected.filename) + '\n');
 						list_dirty = true;
 					}
 				},
 				{ "log", "Run 'git log' on the selected file", (v) =>
 					{
-						if (selected == null)
-							throw new DiffException ("You need to select a file first.");
-
+						var selected = GetSelectedFile ();
 						Execute ("git", "log -- " + selected.QuotedFileName, false, true);
 					}
 				},
 				{ "log --oneline", "Run 'git log --oneline' on the selected file", (v) =>
 					{
-						if (selected == null)
-							throw new DiffException ("You need to select a file first.");
-
+						var selected = GetSelectedFile ();
 						Execute ("git", "log --oneline -- " + selected.QuotedFileName, false, true);
 					}
 				},
 				{ "blame", "Run 'git blame' on the selected file", (v) =>
 					{
-						if (selected == null)
-							throw new DiffException ("You need to select a file first.");
-
+						var selected = GetSelectedFile ();
 						Execute ("git", "blame -- " + selected.QuotedFileName, false, true);
 					}
 				},
