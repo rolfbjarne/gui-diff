@@ -40,7 +40,6 @@ namespace gui_diff
 		public List<Entry> entries = new List<Entry> ();
 		public bool list_dirty = true;
 		public Entry selected;
-		static bool verbose;
 
 		public Diff ()
 		{
@@ -225,11 +224,6 @@ namespace gui_diff
 						if (capture_stdout && !use_shell_execute) {
 							if (p.ExitCode != 0)
 								throw new Exception ("Program execution failed (" + p.ExitCode + "): " + Environment.NewLine + std.ToString ());
-							if (verbose) {
-								Console.WriteLine ("export PWD={0}", string.IsNullOrEmpty (p.StartInfo.WorkingDirectory) ? Environment.CurrentDirectory : p.StartInfo.WorkingDirectory);
-								Console.WriteLine ("{0} {1}", cmd, args);
-								Console.WriteLine (std.ToString ());
-							}
 							return std.ToString ();
 						} else {
 							return null;
