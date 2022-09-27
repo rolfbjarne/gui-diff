@@ -389,9 +389,9 @@ namespace gui_diff
 						var selected = GetSelectedFile ();
 						list_dirty = true;
 						if (selected.untracked) {
-							Execute ("rm", selected.QuotedFileName);
+							Execute ("rm", "-- " + selected.QuotedFileName);
 						} else {
-							Execute ("git", "rm -f " + selected.QuotedFileName);
+							Execute ("git", "rm -f -- " + selected.QuotedFileName);
 						}
 						PrintList ();
 					}
