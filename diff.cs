@@ -414,6 +414,12 @@ namespace gui_diff
 		public string QuotedFileName {
 			get { return "\"" + filename + "\""; }
 		}
+
+		public bool staged_partially {
+			get {
+				return staged && !staged_whole;
+			}
+		}
 	}
 
 	class DiffException : Exception

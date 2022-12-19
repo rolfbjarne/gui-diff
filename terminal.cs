@@ -55,6 +55,19 @@ namespace gui_diff
 			selected = entries [idx];
 		}
 
+		// returns true if any file was selected
+		bool SelectNextFileWithMergeConflict ()
+		{
+			var idx = entries.IndexOf (selected);
+			var nextMergeConflict = entries.FindIndex ((idx == -1 || idx >= entries.Count - 1) ? 0 : idx + 1, (v) => v.staged_partially);
+			if (nextMergeConflict == -1 && idx > -1)
+				nextMergeConflict = entries.FindIndex ((v) => v.staged_partially);
+			if (nextMergeConflict == -1)
+				return false;
+			selected = entries[nextMergeConflict];
+			return true;
+		}
+
 		void ShowDiff (bool? staged, bool monoport)
 		{
 			string diff = null;
@@ -211,7 +224,7 @@ namespace gui_diff
 			}
 		}
 
-		Entry GetSelectedFile ()
+		Entry GetSelectedFile (bool allowUnselected  = false)
 		{
 			if (selected != null)
 				return selected;
@@ -219,7 +232,16 @@ namespace gui_diff
 			if (entries.Count == 1)
 				return entries [0];
 
-			throw new DiffException ("You need to select a file first.");
+			if (!allowUnselected)
+				throw new DiffException ("You need to select a file first.");
+
+			return null;
+		}
+
+		void EditSelectedFile ()
+		{
+			var selected = GetSelectedFile();
+			Execute ("gedit", selected.QuotedFileName);
 		}
 
 		bool Do ()
@@ -239,8 +261,7 @@ namespace gui_diff
 				},
 				{ "e|edit", "Open file in editor", delegate (string v)
 					{
-						var selected = GetSelectedFile ();
-						Execute ("gedit", selected.QuotedFileName);
+						EditSelectedFile ();
 					}
 				},
 				{ "gedit", "Open the file in gedit", delegate (string v)
@@ -552,6 +573,22 @@ namespace gui_diff
 						PrintList ();
 					}
 				},
+				{ "ame", "Add selected (if any), edit next file with a merge conflict", (v) =>
+					{
+
+						var selected = GetSelectedFile (allowUnselected: true);
+						if (selected is not null) {
+							Execute ("git", (selected.deleted ? "rm -- " : "add ") + selected.QuotedFileName);
+							RefreshList ();
+						}
+						list_dirty = true;
+						if (SelectNextFileWithMergeConflict ()) {
+							EditSelectedFile ();
+						} else {
+							PrintList ();
+						}
+					}
+				},
 			};
 
 			do {
@@ -605,7 +642,7 @@ namespace gui_diff
 			ConsoleColor color = ConsoleColor.Black;
 			for (int i = 0; i < entries.Count; i++) {
 				any_eol_issues |= entries [i].messed_up_eol;
-				any_staged_partially |= (entries [i].staged && !entries [i].staged_whole);
+				any_staged_partially |= entries [i].staged_partially;
 				any_staged |= entries [i].staged_whole;
 				any_deleted |= entries [i].deleted;
 				any_untracked |= entries [i].untracked;
