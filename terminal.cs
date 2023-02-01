@@ -446,6 +446,16 @@ namespace gui_diff
 						}
 					}
 				},
+				{ "reset-conflicts", "Executes git reset on files with conflicts", delegate (string v)
+                    {
+						var filesWithMergeConflicts = entries.Where (v => v.staged_partially);
+						if (filesWithMergeConflicts.Any ()) {
+							list_dirty = true;
+                            Execute ("git", "reset -- " + string.Join (" ", filesWithMergeConflicts.Select (v => v.QuotedFileName)));
+                            RefreshList ();
+                        }
+                    }
+				},
 				{ "checkout", "Checks out the selected file (equivalent to svn revert)", delegate (string v)
 					{
 						var selected = GetSelectedFile ();
