@@ -219,7 +219,7 @@ namespace gui_diff
 			var not_staged_deleted = values.Where ((v) => !(v.deleted && v.staged));
 
 			foreach (var entry_batch in not_staged_deleted.Batch (20)) {
-				Execute ("git", "add -- " + string.Join (" ", entry_batch.Select ((e) => e.QuotedFileName)));
+				Execute ("git", "add -f -- " + string.Join (" ", entry_batch.Select ((e) => e.QuotedFileName)));
 				Console.WriteLine ("Added " + string.Join (", ", entry_batch.Select ((e) => e.filename)));
 			}
 		}
@@ -294,7 +294,7 @@ namespace gui_diff
 						var selected = GetSelectedFile ();
 						list_dirty = true;
 						if (!(selected.deleted && selected.staged))
-							Execute ("git", (selected.deleted ? "rm -- " : "add ") + selected.QuotedFileName);
+							Execute ("git", (selected.deleted ? "rm -- " : "add -f -- ") + selected.QuotedFileName);
 						PrintList ();
 					}
 				},
@@ -302,7 +302,7 @@ namespace gui_diff
 					{
 						var selected = GetSelectedFile ();
 						list_dirty = true;
-						Execute ("git", (selected.deleted ? "rm -- " : "add ") + selected.QuotedFileName);
+						Execute ("git", (selected.deleted ? "rm -- " : "add -f -- ") + selected.QuotedFileName);
 						if (selected == null)
 							throw new DiffException ("You need to select a file first.");
 						SelectNextFile ();
@@ -336,7 +336,7 @@ namespace gui_diff
 					{
 						var selected = GetSelectedFile ();
 						list_dirty = true;
-						Execute ("git", (selected.deleted ? "rm -- " : "add -- ") + selected.QuotedFileName);
+						Execute ("git", (selected.deleted ? "rm -- " : "add -f -- ") + selected.QuotedFileName);
 						EditChangeLog (selected);
 						PrintList ();
 					}
@@ -345,7 +345,7 @@ namespace gui_diff
 					{
 						var selected = GetSelectedFile ();
 						list_dirty = true;
-						Execute ("git", (selected.deleted ? "rm -- " : "add -- ") + selected.QuotedFileName);
+						Execute ("git", (selected.deleted ? "rm -- " : "add -f -- ") + selected.QuotedFileName);
 						ShowDiff (true);
 					}
 				},
@@ -453,6 +453,7 @@ namespace gui_diff
 							list_dirty = true;
                             Execute ("git", "reset -- " + string.Join (" ", filesWithMergeConflicts.Select (v => v.QuotedFileName)));
                             RefreshList ();
+                            PrintList ();
                         }
                     }
 				},
@@ -517,7 +518,7 @@ namespace gui_diff
 						var selected = GetSelectedFile ();
 						Dos2Unix (selected.filename);
 						if (selected.staged_whole)
-							Execute ("git", "add " + selected.QuotedFileName);
+							Execute ("git", "add -f " + selected.QuotedFileName);
 						list_dirty = true;
 						ShowDiff (null);
 					}
@@ -568,7 +569,7 @@ namespace gui_diff
 							throw new DiffException ("Commit message is empty");
 
 						if (selected != null)
-							Execute ("git", "add -- " + selected.QuotedFileName, false, true);
+							Execute ("git", "add -f -- " + selected.QuotedFileName, false, true);
 						Execute ("git", $"commit -m \"{msg}\"", false, true);
 						list_dirty = true;
 						PrintList ();
@@ -577,7 +578,7 @@ namespace gui_diff
 				{ "z", "Amend HEAD with the current staged changes", (v) =>
 					{
 						if (selected != null)
-							Execute ("git", "add -- " + selected.QuotedFileName, false, true);
+							Execute ("git", "add -f -- " + selected.QuotedFileName, false, true);
 						Execute ("git", $"commit --amend -C HEAD", false, true);
 						list_dirty = true;
 						PrintList ();
