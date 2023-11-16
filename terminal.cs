@@ -302,7 +302,8 @@ namespace gui_diff
 					{
 						var selected = GetSelectedFile ();
 						list_dirty = true;
-						Execute ("git", (selected.deleted ? "rm -- " : "add -f -- ") + selected.QuotedFileName);
+						if (!(selected.deleted && selected.staged))
+							Execute ("git", (selected.deleted ? "rm -- " : "add -f -- ") + selected.QuotedFileName);
 						if (selected == null)
 							throw new DiffException ("You need to select a file first.");
 						SelectNextFile ();
