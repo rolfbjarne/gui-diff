@@ -601,6 +601,15 @@ namespace gui_diff
 						}
 					}
 				},
+				{ "..|cd ..", "cd ..", (v) =>
+					{
+						Console.WriteLine ($"Old prefix: {Diff.PREFIX}");
+						Diff.PREFIX = Path.GetDirectoryName (Diff.PREFIX);
+						Console.WriteLine ($"New prefix: {Diff.PREFIX}");
+						list_dirty = true;
+						PrintList ();
+					}
+				},
 			};
 
 			do {
