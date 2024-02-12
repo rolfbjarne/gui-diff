@@ -604,7 +604,9 @@ namespace gui_diff
 				{ "..|cd ..", "cd ..", (v) =>
 					{
 						Console.WriteLine ($"Old prefix: {Diff.PREFIX}");
-						Diff.PREFIX = Path.GetDirectoryName (Diff.PREFIX);
+						Diff.PREFIX = Path.GetDirectoryName (Diff.PREFIX.TrimEnd (Path.DirectorySeparatorChar));
+						if (Diff.PREFIX.Length > 0)
+							Diff.PREFIX +=  Path.DirectorySeparatorChar;
 						Console.WriteLine ($"New prefix: {Diff.PREFIX}");
 						list_dirty = true;
 						PrintList ();
