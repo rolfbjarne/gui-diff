@@ -1,5 +1,3 @@
 #!/bin/bash -e
 
-DIR="%DIR%"
-
-xGIT_PAGER= mono --debug $MONO_OPTIONS $DIR/bin/Debug/gui-diff.exe "$@"
+xGIT_PAGER= %EXECUTABLE% "$@"

@@ -1,10 +1,12 @@
 SOURCES = $(wildcard *.cs) $(wildcard */*.cs)
 
-bin/Debug/gui-diff.exe: $(SOURCES) Makefile
-	@msbuild
+GUI_DIFF=bin/Release/native/gui-diff
 
-all: bin/Debug/gui-diff.exe
+$(GUI_DIFF): $(SOURCES) Makefile
+	@dotnet publish /bl /nologo /v:diag
 
-install: gui-diff bin/Debug/gui-diff.exe
+all: $(GUI_DIFF)
+
+install: gui-diff $(GUI_DIFF)
 	@echo "[INSTALL] gui-diff"
-	@sed 's@%DIR%@$(CURDIR)@' gui-diff > ~/bin/gui-diff
+	@sed 's@%EXECUTABLE%@$(CURDIR)/$(GUI_DIFF)@' gui-diff > ~/bin/gui-diff

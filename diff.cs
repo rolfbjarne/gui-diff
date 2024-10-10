@@ -382,7 +382,7 @@ namespace gui_diff
 				}
 
 				if (winforms) {
-					Instance = new WinFormsDiff ();
+					throw new NotImplementedException ();
 				} else {
 					Instance = new TerminalDiff ();
 				}
