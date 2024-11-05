@@ -323,6 +323,8 @@ namespace gui_diff
 
 		private void Convert (string filename, string eol)
 		{
+			Encoding.RegisterProvider (CodePagesEncodingProvider.Instance);
+
 			string line;
 			bool last_line_empty = false;
 
