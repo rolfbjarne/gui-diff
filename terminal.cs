@@ -604,10 +604,29 @@ namespace gui_diff
 				{ "..|cd ..", "cd ..", (v) =>
 					{
 						Console.WriteLine ($"Old prefix: {Diff.PREFIX}");
-						Diff.PREFIX = Path.GetDirectoryName (Diff.PREFIX.TrimEnd (Path.DirectorySeparatorChar));
+						Diff.PREFIX = Path.GetDirectoryName (Diff.PREFIX.TrimEnd (Path.DirectorySeparatorChar)) ?? string.Empty;
 						if (Diff.PREFIX.Length > 0)
-							Diff.PREFIX +=  Path.DirectorySeparatorChar;
+							Diff.PREFIX += Path.DirectorySeparatorChar;
 						Console.WriteLine ($"New prefix: {Diff.PREFIX}");
+						list_dirty = true;
+						PrintList ();
+					}
+				},
+				{ "cd *", "cd *", (v) =>
+					{
+						var dir = v.Substring ("cd ".Length).Trim ();
+						if (string.IsNullOrEmpty (dir))
+							throw new DiffException ("Directory is empty");
+						if (!Directory.Exists (Path.Combine (Diff.PREFIX, dir)))
+							throw new DiffException ($"Directory '{dir}' does not exist");
+						Diff.PREFIX = Path.Combine (Diff.PREFIX, dir);
+						list_dirty = true;
+						PrintList ();
+					}
+				},
+				{ "cd", "cd", (v) =>
+					{
+						Diff.PREFIX = string.Empty;
 						list_dirty = true;
 						PrintList ();
 					}
@@ -649,9 +668,27 @@ namespace gui_diff
 			Console.Write ("Now what? ");
 		}
 
+		string? topLevel;
+		string GetTopLevel ()
+		{
+			if (topLevel is null) {
+				topLevel = Execute ("git", "rev-parse --show-toplevel")?.Trim ();
+				if (topLevel is null)
+					throw new Exception ("Not a git repository");
+			}
+			return topLevel;
+		}
+
 		void PrintList ()
 		{
 			Console.Clear ();
+
+			var relativeRoot = $"<root>/{Diff.PREFIX.TrimEnd ('/')}";
+			Console.Write ($"Working directory: ");
+			Console.ForegroundColor = ConsoleColor.Cyan;
+			Console.WriteLine (relativeRoot);
+			Console.ResetColor ();
+
 			if (list_dirty)
 				RefreshList ();
 
