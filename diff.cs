@@ -28,6 +28,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 
 namespace gui_diff
@@ -71,11 +72,37 @@ namespace gui_diff
 
 		public void RefreshList ()
 		{
+			RefreshListNew ();
+
+			entries.Sort ((a, b) => {
+				// Fully staged files at the top
+				if (a.staged_whole != b.staged_whole)
+					return a.staged_whole ? -1 : 1;
+
+				// Then staged (unmerged)
+				if (a.staged != b.staged)
+					return a.staged ? -1 : 1;
+
+				// Untracked files at the bottom
+				if (a.untracked != b.untracked)
+					return a.untracked ? 1 : -1;
+
+				//Console.WriteLine ($"Sorting {a.filename} vs {b.filename}: a.staged: {a.staged} b.staged: {b.staged} a.staged_whole: {a.staged_whole} b.staged_whole: {b.staged_whole}");
+
+				// Finally sort by filename
+				return string.CompareOrdinal (a.filename, b.filename);
+			});
+
+			list_dirty = false;
+		}
+
+		public void RefreshListOld ()
+		{
 			int Ac = 0, ADc = 0, DAc = 0, Dc = 0;
-			var status = ExecuteToLines ("git", ["status", "--porcelain"]);
 			List<string> diff = ExecuteToLines ("git", ["diff", "--name-only", "--ignore-submodules"]);
 			List<string> staged = ExecuteToLines ("git", ["diff", "--name-only", "--staged"]);
 			List<string> untracked = ExecuteToLines ("git", ["ls-files", "--other", "--exclude-standard"]);
+
 			var all = new HashSet<string> (diff);
 
 			selected = null;
@@ -95,7 +122,7 @@ namespace gui_diff
 				} else if (!File.Exists (file)) {
 					entry.deleted = true;
 				} else {
-					entry.messed_up_eol = IsEolMessedUp (file, out Ac, out ADc, out DAc, out Dc, ref entry.is_binary);
+					entry.messed_up_eol = IsEolMessedUp (file, out Ac, out ADc, out DAc, out Dc, out var hasConflictMarkers, ref entry.is_binary);
 					if (!entry.messed_up_eol) {
 						if (Ac > 0) {
 							entry.eol = "LF  ";
@@ -119,28 +146,160 @@ namespace gui_diff
 				};
 				entries.Add (entry);
 			}
+		}
 
-			entries.Sort ((a, b) =>
-			{
-				// Fully staged files at the top
-				if (a.staged_whole != b.staged_whole)
-					return a.staged_whole ? -1 : 1;
+		public void RefreshListNew ()
+		{
+			var status = ExecuteToLines ("git", ["status", "--porcelain", "--ignore-submodules"]);
 
-				// Then staged (unmerged)
-				if (a.staged != b.staged)
-					return a.staged ? -1 : 1;
+			selected = null;
 
-				// Untracked files at the bottom
-				if (a.untracked != b.untracked)
-					return a.untracked ? 1 : -1;
+			entries.Clear ();
+			foreach (var line in status) {
+				if (line.Length < 3)
+					continue;
 
-				//Console.WriteLine ($"Sorting {a.filename} vs {b.filename}: a.staged: {a.staged} b.staged: {b.staged} a.staged_whole: {a.staged_whole} b.staged_whole: {b.staged_whole}");
+				if (line [2] != ' ')
+					throw new DiffException ($"Unexpected status line: {line}");
 
-				// Finally sort by filename
-				return string.CompareOrdinal (a.filename, b.filename);
-			});
+				var file = line [3..];
 
-			list_dirty = false;
+				if (file.Length == 0)
+					throw new DiffException ($"Unexpected status line: {line}");
+
+				string? renamed_from = null;
+				var renamed = false;
+				if (file [0] == '"') {
+					var sb = new StringBuilder ();
+					var inQuote = false;
+					for (int i = 0; i < file.Length; i++) {
+						var ch = file [i];
+						if (ch == '"') {
+							inQuote = !inQuote;
+						} else if (inQuote) {
+							sb.Append (ch);
+						} else if (ch == '\\') {
+							sb.Append (file [i + 1]);
+							i++;
+						} else if (ch == ' ') {
+							renamed = true;
+							renamed_from = sb.ToString ();
+							sb.Clear ();
+						} else {
+							throw new DiffException ($"Unexpected status line: {line}");
+						}
+					}
+					file = sb.ToString ();
+				} else {
+					var space = file.IndexOf (' ');
+					if (space >= 0) {
+						if (file [space..(space + 4)] == " -> ") {
+							renamed = true;
+							renamed_from = file.Substring (0, space);
+							file = file.Substring (space + 4);
+						} else {
+							throw new DiffException ($"Unexpected status line: {line}");
+						}
+					}
+				}						
+
+				if (PREFIX.Length > 1 && !file.StartsWith (PREFIX, StringComparison.Ordinal))
+					continue;
+
+				var staged = false;
+				var staged_whole = false;
+				var untracked = false;
+				var deleted = false;
+				var conflict = false;
+				var is_directory = Directory.Exists (file);
+
+				var x = line [0];
+				var y = line [1];
+
+				// https://git-scm.com/docs/git-status
+				switch (x) {
+				case '?':
+					if (y != '?')
+						throw new DiffException ($"Unexpected status line: {line}");
+					untracked = true;
+					break;
+				case 'M': // modified
+				case 'T': // type changed
+				case 'R': // renamed
+				case 'C': // copied
+					staged = true;
+					staged_whole = y == ' ';
+					break;
+				case 'A': // added
+					switch (y) {
+					case 'A':
+					case 'U':
+						conflict = true;
+						break;
+					case ' ':
+					case 'M':
+					case 'D':
+					case 'T':
+						staged = true;
+						staged_whole = y == ' ';
+						break;
+					default:
+						throw new DiffException ($"Unexpected status line: {line}");
+					}
+					break;
+				case 'D': // deleted
+					deleted = true;
+					switch (y) {
+					case 'D':
+					case 'U':
+						conflict = true;
+						break;
+					case ' ':
+						staged = true;
+						staged_whole = true;
+						break;
+					default:
+						throw new DiffException ($"Unexpected status line: {line}");
+					}
+					break;
+				case 'U': // unmerged
+					conflict = true;
+					break;
+				case ' ':
+					break;
+				default:
+					throw new DiffException ($"Unexpected status line: {line}");
+				}
+		
+				var entry = new Entry () {
+					filename = file,
+					staged = staged,
+					staged_whole = staged_whole,
+					renamed = renamed,
+					renamed_from = renamed_from,
+					untracked = untracked,
+					deleted = deleted,
+					is_directory = is_directory,
+					conflict = conflict,
+				};
+
+				if (!entry.is_directory && !entry.deleted) {
+					entry.messed_up_eol = IsEolMessedUp (file, out var Ac, out var ADc, out var DAc, out var Dc, out var hasConflictMarkers, ref entry.is_binary);
+					entry.has_conflict_marker = hasConflictMarkers;
+					if (!entry.messed_up_eol) {
+						if (Ac > 0) {
+							entry.eol = "LF  ";
+						} else if (ADc > 0) {
+							entry.eol = "LFCR";
+						} else if (DAc > 0) {
+							entry.eol = "CRLF";
+						} else if (Dc > 0) {
+							entry.eol = "CR  ";
+						}
+					}
+				}
+				entries.Add (entry);
+			}
 		}
 
 		public List<string> ExecuteToLines (string cmd, IEnumerable<string> args)
@@ -260,7 +419,24 @@ namespace gui_diff
 
 		public bool IsEolMessedUp (string filename, out int Ac, out int ADc, out int DAc, out int Dc, ref bool is_binary)
 		{
-			int A = 0, AD = 0, DA = 0, D = 0;
+			return IsEolMessedUp (filename, out Ac, out ADc, out DAc, out Dc, out var _, ref is_binary);
+		}
+
+		public bool IsEolMessedUp (string filename, out int Ac, out int ADc, out int DAc, out int Dc, out bool hasConflictMarkers, ref bool is_binary)
+		{
+			ProcessTextFile (filename, out Ac, out ADc, out DAc, out Dc, out hasConflictMarkers, ref is_binary);
+			if (is_binary)
+				return false;
+
+			var A = Ac > 0 ? 1 : 0;
+			var AD = ADc > 0 ? 1 : 0;
+			var DA = DAc > 0 ? 1 : 0;
+			var D = Dc > 0 ? 1 : 0;
+			return A + AD + DA + D > 1;
+		}
+		
+		public void ProcessTextFile (string filename, out int Ac, out int ADc, out int DAc, out int Dc, out bool hasConflictMarkers, ref bool is_binary)
+		{
 			int i = 0;
 
 			byte [] contents = File.ReadAllBytes (filename);
@@ -269,6 +445,7 @@ namespace gui_diff
 			ADc = 0;
 			DAc = 0;
 			Dc = 0;
+			hasConflictMarkers = false;
 
 			while (i < contents.Length) {
 				byte a = contents [i];
@@ -277,33 +454,64 @@ namespace gui_diff
 				switch (a) {
 				case 10:
 					if (two && contents [i + 1] == 13) {
-						AD = 1;
 						ADc++;
 						i++;
 					} else {
-						A = 1;
 						Ac++;
 					}
 					break;
 				case 13:
 					if (two && contents [i + 1] == 10) {
-						DA = 1;
 						DAc++;
 						i++;
 					} else {
-						D = 1;
 						Dc++;
 					}
 					break;
+				case (byte) '<': 
+				case (byte) '=': 
+				case (byte) '>': 
+					// Conflict markers:
+					// <<<<<<<
+					// =======
+					// >>>>>>>
+
+					// No need to do anything we've already found a conflict marker
+					if (hasConflictMarkers)
+						break;
+
+					// Check if we have enough text left for a conflict marker
+					if (contents.Length - i < 6)
+						break;
+
+					// Check if we have a newline (or start of file) before the conflict marker
+					if (i > 0 && (contents [i - 1] != 10 && contents [i - 1] != 13))
+						break;
+
+					// '=======' is valid markdown (header marker), so we don't treat it as a conflict marker
+					if (filename.EndsWith (".md", StringComparison.OrdinalIgnoreCase) && a == (byte) '=')
+						break;
+
+					// Check for the conflict marker
+					var foundNonmatching = false;
+					for (var j = 1; j < 7; j++) {
+						var c = contents [i + j];
+						if (c != a) {
+							foundNonmatching = true;
+							break;
+						}
+					}
+					if (!foundNonmatching)
+						hasConflictMarkers = true;
+
+					break;
 				case 0:
 					is_binary = true;
-					return false;
+					return;
 				}
 
 				i++;
 			}
-
-			return A + AD + DA + D > 1;
 		}
 
 		public void Fixeol (Entry entry)
@@ -408,6 +616,7 @@ namespace gui_diff
 		public bool is_binary;
 		public string? eol;
 		public bool messed_up_eol;
+		public bool has_conflict_marker;
 		public bool staged;
 		public bool staged_whole;
 		public bool deleted;
@@ -415,6 +624,9 @@ namespace gui_diff
 		public bool added;
 		public bool untracked;
 		public bool is_directory;
+		public bool conflict;
+		public bool renamed;
+		public string? renamed_from;
 
 		public bool staged_partially {
 			get {

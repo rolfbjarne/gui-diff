@@ -29,6 +29,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Diagnostics;
+using System.Net.NetworkInformation;
 
 namespace gui_diff
 {
@@ -37,11 +38,6 @@ namespace gui_diff
 		protected override void Run ()
 		{
 			Do ();
-		}
-
-		void ShowDiff (bool? staged)
-		{
-			ShowDiff (staged, false);
 		}
 
 		void SelectNextFile ()
@@ -64,129 +60,49 @@ namespace gui_diff
 		bool SelectNextFileWithMergeConflict ()
 		{
 			var idx = selected is null ? -1 : entries.IndexOf (selected);
-			var nextMergeConflict = entries.FindIndex ((idx == -1 || idx >= entries.Count - 1) ? 0 : idx + 1, (v) => v.staged_partially);
+			var nextMergeConflict = entries.FindIndex ((idx == -1 || idx >= entries.Count - 1) ? 0 : idx + 1, (v) => v.conflict);
 			if (nextMergeConflict == -1 && idx > -1)
-				nextMergeConflict = entries.FindIndex ((v) => v.staged_partially);
+				nextMergeConflict = entries.FindIndex ((v) => v.conflict);
 			if (nextMergeConflict == -1)
 				return false;
 			selected = entries[nextMergeConflict];
 			return true;
 		}
 
-		void ShowDiff (bool? staged, bool monoport)
+		void ShowDiff (bool? staged)
 		{
 			string diff = string.Empty;
 			string color;
-			if (!monoport) {
 				Console.Clear ();
 				color = "--color";
-			} else {
-				color = "--no-color";
-			}
 			if (selected == null) {
 				if (staged.HasValue && staged.Value) {
-					if (!monoport) {
+					Console.ForegroundColor = ConsoleColor.Magenta;
+					Console.WriteLine ("STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF");
+					Console.ResetColor ();
+				   diff = Execute ("git", new[] { "diff", "--staged", color }, false);
 						Console.ForegroundColor = ConsoleColor.Magenta;
 						Console.WriteLine ("STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF");
 						Console.ResetColor ();
-					}
-				   diff = Execute ("git", new[] { "diff", "--staged", color }, monoport);
-					if (!monoport) {
-						Console.ForegroundColor = ConsoleColor.Magenta;
-						Console.WriteLine ("STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF");
-						Console.ResetColor ();
-					}
 				} else {
-					diff = Execute ("git", ["diff", color], monoport);
+					diff = Execute ("git", ["diff", color], false);
 				}
 			} else {
 				if (selected.untracked) {
 					diff = File.ReadAllText (selected.filename);
-					if (!monoport) {
-						Console.WriteLine (diff);
-					}
+					Console.WriteLine (diff);
 				} else if (((selected.staged_whole || selected.staged) && !(staged.HasValue && !staged.Value)) || (staged.HasValue && staged.Value)) {
-					if (!monoport) {
-						Console.ForegroundColor = ConsoleColor.Magenta;
-						Console.WriteLine ("STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF");
-						Console.ResetColor ();
-					}
-					diff = Execute ("git", ["diff", "--staged", color, "--", selected.filename], monoport);
-					if (!monoport) {
-						Console.ForegroundColor = ConsoleColor.Magenta;
-						Console.WriteLine ("STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF");
-						Console.ResetColor ();
-					}
+					Console.ForegroundColor = ConsoleColor.Magenta;
+					Console.WriteLine ("STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF");
+					Console.ResetColor ();
+					diff = Execute ("git", ["diff", "--staged", color, "--", selected.filename], false);
+					Console.ForegroundColor = ConsoleColor.Magenta;
+					Console.WriteLine ("STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF");
+					Console.ResetColor ();
 				} else {
-					diff = Execute ("git", ["diff", color, "--", selected.filename], monoport);
+					diff = Execute ("git", ["diff", color, "--", selected.filename], false);
 				}
 			}
-			if (monoport) {
-				if (string.IsNullOrEmpty (diff)) {
-					Console.WriteLine ("Diff is empty");
-				} else {
-					string tmpfile = Path.GetTempFileName ();
-					File.WriteAllText (tmpfile, diff);
-					Execute ("monoport", [tmpfile]);
-					File.Delete (tmpfile);
-				}
-			}
-		}
-
-		static string? FindChangeLog (Entry entry)
-		{
-			string find;
-			string dir = Path.GetDirectoryName (entry.filename)!;
-			do {
-				find = Path.Combine (dir, "ChangeLog");
-				if (File.Exists (find)) {
-					Console.WriteLine ("Found ChangeLog in: {0}", dir);
-					return find;
-				}
-				Console.WriteLine ("No ChangeLog in {0} (filename: {1})", dir, entry.filename);
-				if (dir == "")
-					break;
-				dir = Path.GetDirectoryName (dir)!;
-			} while (dir != "/");
-
-			return null;
-		}
-
-		public void EditChangeLog (Entry selected)
-		{
-			if (selected == null)
-				throw new ArgumentNullException ("You must select a file first");
-			var changelog = FindChangeLog (selected);
-			if (changelog == null)
-				throw new Exception ("No changelog found");
-			string sdiff = Execute ("git", ["diff", "--staged", changelog]);
-			string fn = selected.filename.Substring (Path.GetDirectoryName (changelog)!.Length == 0 ? 0 : Path.GetDirectoryName (changelog)!.Length + 1);
-			string content = File.ReadAllText (changelog);
-
-			if (string.IsNullOrEmpty (sdiff) || string.IsNullOrEmpty (content)) {
-				string entry = string.Format (
-	@"{0:yyyy-MM-dd}  Rolf Bjarne Kvinge  <RKvinge@novell.com>
-
-	* {1}:
-
-", DateTime.Now, fn);
-
-				File.WriteAllText (changelog, entry + content);
-			} else {
-				string eol = GetEol (changelog);
-				string l = "\t* " + fn + ":" + eol;
-				int idx = 0;
-				idx = content.IndexOf (eol) + eol.Length;
-				idx = content.IndexOf (eol, idx) + eol.Length;
-				content = content.Substring (0, idx) + l + content.Substring (idx);
-				File.WriteAllText (changelog, content);
-			}
-			Console.WriteLine ("Opening ChangeLog for editing...");
-			//Execute ("gnome-terminal", "--maximize -e \"nano -c " + changelog + "\"", false);
-			Execute ("meld", [Path.Combine (Environment.CurrentDirectory, changelog)], false);
-			Execute ("git", ["add", changelog]);
-			Console.WriteLine ("ChangeLog added");
-			selected.edited_changelog = true;
 		}
 
 		public void FixDate (string filename)
@@ -296,14 +212,6 @@ namespace gui_diff
 						Execute ("nano", ["-c", selected.filename], false);
 					}
 				},
-				{ "c|changelog", "Edit ChangeLog for the selected file", delegate (string v)
-					{
-						var selected = GetSelectedFile ();
-						EditChangeLog (selected);
-						list_dirty = true;
-						PrintList ();
-					}
-				},
 				{ "a|add", "Add file to index", delegate (string v)
 					{
 						var selected = GetSelectedFile ();
@@ -348,15 +256,6 @@ namespace gui_diff
 					}
 				},
 
-				{ "ac|addc", "Add file to index and edit changelog", delegate (string v)
-					{
-						var selected = GetSelectedFile ();
-						list_dirty = true;
-						Execute ("git", selected.deleted ? ["rm", "--", selected.filename] : ["add", "-f", "--", selected.filename]);
-						EditChangeLog (selected);
-						PrintList ();
-					}
-				},
 				{ "and|addanddiff", "Add file to index and immediately show a diff of the staged file", delegate (string v)
 					{
 						var selected = GetSelectedFile ();
@@ -372,13 +271,6 @@ namespace gui_diff
 						Execute ("git", ["add", "-p", selected.filename], false);
 					}
 				},
-				{ "ci|gitci|git ci", "Commit using gitci", delegate (string v)
-					{
-						Execute ("gitci", [], false);
-						list_dirty = true;
-						PrintList ();
-					}
-				},
 				{ "commit", "Commit using git (git commit)", delegate (string v)
 					{
 						list_dirty = true;
@@ -386,37 +278,12 @@ namespace gui_diff
 						PrintList ();
 					}
 				},
-				{ "fixdate", "Fix the date(s) in the selected ChangeLog", delegate (string v)
-					{
-						var selected = GetSelectedFile ();
-						FixDate (selected.filename);
-						ShowDiff (null);
-					}
-				},
-				{ "fixdates", "Fix the date(s) in all the ChangeLogs", delegate (string v)
-					{
-						foreach (var entry in entries) {
-							if (entry.filename.EndsWith ("ChangeLog", StringComparison.Ordinal))
-								FixDate (entry.filename);
-						}
-					}
-				},
 				{ "d|diff", "Show the diff for the selected file", delegate (string v)
 					{
 						ShowDiff (false);
 					}
 				},
-				{ "md|monoport diff", "Monoport the diff of the selected file", delegate (string v)
-					{
-						ShowDiff (false, true);
-					}
-				},
-				{ "msd|monoport sdiff", "Monoport the staged diff of the selected file", delegate (string v)
-					{
-						ShowDiff (true, true);
-					}
-				},
-				{ "sd|diff --staged|stageddiff|staged diff", "Show the staged diff", delegate (string v)
+				{ "sd|diff --staged|stageddiff|staged diff|sdiff", "Show the staged diff", delegate (string v)
 					{
 						ShowDiff (true);
 					}
@@ -463,14 +330,16 @@ namespace gui_diff
 					}
 				},
 				{ "reset-conflicts", "Executes git reset on files with conflicts", delegate (string v)
-                    {
-						var filesWithMergeConflicts = entries.Where (v => v.staged_partially);
+					{
+						var filesWithMergeConflicts = entries.Where (v => v.conflict);
 						if (filesWithMergeConflicts.Any ()) {
 							list_dirty = true;
-                            Execute ("git", ["reset", "--", ..filesWithMergeConflicts.Select (v => v.filename)]);
-                            RefreshList ();
-                            PrintList ();
-                        }
+							Execute ("git", ["reset", "--", ..filesWithMergeConflicts.Select (v => v.filename)]);
+							RefreshList ();
+							PrintList ();
+						} else {
+							Console.WriteLine ("No files with merge conflicts found.");
+						}
                     }
 				},
 				{ "checkout", "Checks out the selected file (equivalent to svn revert)", delegate (string v)
@@ -488,13 +357,6 @@ namespace gui_diff
 						Execute ("git", ["checkout", selected.filename]);
 						SelectNextFile ();
 						ShowDiff (null);
-					}
-				},
-				{ "meld", "View the selected file in meld", delegate (string v)
-					{
-						var selected = GetSelectedFile ();
-						list_dirty = true;
-						Execute ("muld", [Path.Combine (Environment.CurrentDirectory, selected.filename)], false);
 					}
 				},
 				{ "gui", "Run git gui", delegate (string v)
@@ -634,19 +496,19 @@ namespace gui_diff
 							throw new DiffException ("Directory is empty");
 						if (!Directory.Exists (Path.Combine (Diff.PREFIX, dir)))
 							throw new DiffException ($"Directory '{dir}' does not exist");
-						Diff.PREFIX = Path.Combine (Diff.PREFIX, dir);
+						Diff.PREFIX = Path.Combine (Diff.PREFIX, dir).TrimEnd (Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
 						list_dirty = true;
 						PrintList ();
 					}
 				},
-				{ "cd", "cd", (v) =>
+				{ ".|cd", "Go to the root directory", (v) =>
 					{
 						Diff.PREFIX = string.Empty;
 						list_dirty = true;
 						PrintList ();
 					}
 				},
-			};
+			};	
 
 			do {
 				PrintCommands ();
@@ -708,22 +570,30 @@ namespace gui_diff
 				RefreshList ();
 
 			bool any_eol_issues = false;
+			bool any_conflict_markers = false;
 			bool any_staged = false;
 			bool any_staged_partially = false;
+			bool any_conflicts = false;
 			bool any_deleted = false;
 			bool any_untracked = false;
 			bool any_binaries = false;
+			bool any_outside_file_references = false;
 			int max_filename_length = 0;
 			ConsoleColor color = ConsoleColor.Black;
 			for (int i = 0; i < entries.Count; i++) {
 				any_eol_issues |= entries [i].messed_up_eol;
+				any_conflict_markers |= entries [i].has_conflict_marker;
 				any_staged_partially |= entries [i].staged_partially;
+				any_conflicts |= entries [i].conflict;
 				any_staged |= entries [i].staged_whole;
 				any_deleted |= entries [i].deleted;
 				any_untracked |= entries [i].untracked;
 				any_binaries |= entries [i].is_binary;
+				any_outside_file_references |= entries [i].renamed_from?.StartsWith (PREFIX) != true;
 				max_filename_length = Math.Max (max_filename_length, entries [i].filename.Length);
 			}
+
+			var ignorePrefix = any_outside_file_references ? string.Empty : PREFIX;
 
 			//		Console.Clear ();
 			for (int i = 0; i < entries.Count; i++) {
@@ -733,31 +603,51 @@ namespace gui_diff
 				} else {
 					Console.Write (" ");
 				}
-				if (any_staged || any_staged_partially) {
+				if (any_staged || any_staged_partially || any_conflicts) {
 					if (entries [i].staged_whole) {
 						Console.Write ("staged ");
 						if (any_staged_partially)
 							Console.Write ("            ");
+						else if (any_conflicts)
+							Console.Write ("  ");
 						color = ConsoleColor.Blue;
+					} else if (entries [i].conflict) {
+						Console.Write ("conflict ");
+						if (any_staged_partially)
+							Console.Write ("          ");
+						color = ConsoleColor.Red;
 					} else if (entries [i].staged) {
 						Console.Write ("staged (partially) ");
 						color = ConsoleColor.DarkBlue;
 					} else {
 						if (any_staged_partially) {
 							Console.Write ("   -               ");
+						} else if (any_conflicts) {
+							Console.Write ("   -     ");
 						} else {
 							Console.Write ("   -   ");
 						}
 					}
 				}
-				if (any_binaries) {
-					if (entries [i].is_binary) {
-						Console.Write ("binary ");
-						color = ConsoleColor.DarkGreen;
+
+				if (any_conflict_markers) {
+					if (entries [i].has_conflict_marker) {
+						Console.ForegroundColor = ConsoleColor.DarkRed;
+						Console.Write ("conflict markers ");
+						Console.ResetColor ();
 					} else {
-						Console.Write ("       ");
+						Console.Write ("                 ");
 					}
 				}
+
+				if (any_binaries) {
+						if (entries [i].is_binary) {
+							Console.Write ("binary ");
+							color = ConsoleColor.DarkGreen;
+						} else {
+							Console.Write ("       ");
+						}
+					}
 				if (any_deleted) {
 					if (entries [i].deleted) {
 						Console.Write ("deleted ");
@@ -799,7 +689,15 @@ namespace gui_diff
 
 				if (color != ConsoleColor.Black)
 					Console.ForegroundColor = color;
-				Console.Write (entries [i].filename.Substring (PREFIX.Length));
+				if (entries [i].renamed) {
+					Console.Write (entries [i].renamed_from! [ignorePrefix.Length..]);
+					Console.ForegroundColor = ConsoleColor.Yellow;
+					Console.Write (" -> ");
+					Console.ForegroundColor = color;
+					Console.Write (entries [i].filename [ignorePrefix.Length..]);
+				} else {
+					Console.Write (entries [i].filename [ignorePrefix.Length..]);
+				}
 				Console.ResetColor ();
 
 				if (entries [i].is_directory)
