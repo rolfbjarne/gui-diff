@@ -52,17 +52,17 @@ namespace gui_diff
 
 			if (selected == null) {
 				if (staged.HasValue && staged.Value) {
-					diff = Execute ("git", "diff --staged " + color, true);
+					diff = Execute ("git", ["diff", "--staged", color], true);
 				} else {
-					diff = Execute ("git", "diff " + color, true);
+					diff = Execute ("git", ["diff", color], true);
 				}
 			} else {
 				if (selected.untracked) {
 					diff = File.ReadAllText (selected.filename);
 				} else if (((selected.staged_whole || selected.staged) && !(staged.HasValue && !staged.Value)) || (staged.HasValue && staged.Value)) {
-					diff = Execute ("git", "diff --staged " + color + " -- " + selected.filename, true);
+					diff = Execute ("git", ["diff", "--staged", color, "--", selected.filename], true);
 				} else {
-					diff = Execute ("git", "diff " + color + " -- " + selected.filename, true);
+					diff = Execute ("git", ["diff", color, "--", selected.filename], true);
 				}
 			}
 
@@ -72,9 +72,10 @@ namespace gui_diff
 		public void RefreshList ()
 		{
 			int Ac = 0, ADc = 0, DAc = 0, Dc = 0;
-			List<string> diff = ExecuteToLines ("git", "diff --name-only --ignore-submodules");
-			List<string> staged = ExecuteToLines ("git", "diff --name-only --staged");
-			List<string> untracked = ExecuteToLines ("git", "ls-files --other --exclude-standard");
+			var status = ExecuteToLines ("git", ["status","--porcelain"]);
+			List<string> diff = ExecuteToLines ("git", ["diff", "--name-only", "--ignore-submodules"]);
+			List<string> staged = ExecuteToLines ("git", ["diff", "--name-only", "--staged"]);
+			List<string> untracked = ExecuteToLines ("git", ["ls-files", "--other", "--exclude-standard"]);
 			var all = new HashSet<string> (diff);
 
 			selected = null;
@@ -140,55 +141,53 @@ namespace gui_diff
 			list_dirty = false;
 		}
 
-		public List<string> ExecuteToLines (string cmd, string args)
+		public List<string> ExecuteToLines (string cmd, string[] args)
 		{
 			return new List<string> (Execute (cmd, args).Split (new char [] { (char) 10, (char) 13 }, StringSplitOptions.RemoveEmptyEntries));
 		}
 
-		public string Execute (string cmd, string args)
+		public string Execute (string cmd, string[] args)
 		{
 			return Execute (cmd, args, true);
 		}
 
-		public string Execute (string cmd, string args, bool capture_stdout)
+		public string Execute (string cmd, string[] args, bool capture_stdout)
 		{
 			return Execute (cmd, args, capture_stdout, true);
 		}
 
 		public void Stage (string path)
 		{
-			Execute ("git", "apply --index --cached --ignore-whitespace --ignore-space-change \"" + path + "\"", true, true);
+			Execute ("git", ["apply", "--index", "--cached", "--ignore-whitespace", "--ignore-space-change", path], true, true);
 			list_dirty = true;
 		}
 
-		public string Execute (string cmd, string args, bool capture_stdout, bool wait_for_exit, bool use_shell_execute = false)
+		public string Execute (string cmd, string [] args, bool capture_stdout, bool wait_for_exit, bool use_shell_execute = false)
 		{
-			StringBuilder std = new StringBuilder ();
+			var std = new StringBuilder ();
 
-			using (System.Threading.ManualResetEvent stderr_event = new System.Threading.ManualResetEvent (false)) {
-				using (System.Threading.ManualResetEvent stdout_event = new System.Threading.ManualResetEvent (false)) {
-
-					using (Process p = new Process ()) {
+			using (var stderr_event = new ManualResetEvent (false)) {
+				using (var stdout_event = new ManualResetEvent (false)) {
+					using (var p = new Process ()) {
 						p.StartInfo.UseShellExecute = use_shell_execute;
 						p.StartInfo.RedirectStandardOutput = capture_stdout;
 						p.StartInfo.RedirectStandardError = capture_stdout;
 						p.StartInfo.FileName = cmd;
-						p.StartInfo.Arguments = args;
+						foreach (var arg in args)
+							p.StartInfo.ArgumentList.Add (arg);
 						p.StartInfo.CreateNoWindow = true;
 
-						p.ErrorDataReceived += (object o, DataReceivedEventArgs ea) =>
-							{
-								lock (std) {
-									if (ea.Data == null) {
-										stderr_event.Set ();
-									} else {
-										std.AppendLine (ea.Data);
-									}
+						p.ErrorDataReceived += (object o, DataReceivedEventArgs ea) => {
+							lock (std) {
+								if (ea.Data == null) {
+									stderr_event.Set ();
+								} else {
+									std.AppendLine (ea.Data);
 								}
-							};
+							}
+						};
 
-						p.OutputDataReceived += (object o, DataReceivedEventArgs ea) =>
-						{
+						p.OutputDataReceived += (object o, DataReceivedEventArgs ea) => {
 							lock (std) {
 								if (ea.Data == null) {
 									stdout_event.Set ();

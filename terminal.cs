@@ -85,14 +85,14 @@ namespace gui_diff
 						Console.WriteLine ("STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF");
 						Console.ResetColor ();
 					}
-					diff = Execute ("git", "diff --staged " + color, monoport);
+					diff = Execute ("git", ["diff", "--staged", color], monoport);
 					if (!monoport) {
 						Console.ForegroundColor = ConsoleColor.Magenta;
 						Console.WriteLine ("STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF");
 						Console.ResetColor ();
 					}
 				} else {
-					diff = Execute ("git", "diff " + color, monoport);
+					diff = Execute ("git", ["diff", color], monoport);
 				}
 			} else {
 				if (selected.untracked) {
