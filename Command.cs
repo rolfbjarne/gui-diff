@@ -37,10 +37,11 @@ namespace gui_diff
 	{
 		public void Add (string Words, string Help, CommandAction Action)
 		{
-			Command c = new Command ();
-			c.Words = Words.Split ('|');
-			c.Action = Action;
-			c.Help = Help;
+			var c = new Command () {
+				Words = Words.Split ('|'),
+				Action = Action,
+				Help = Help,
+			};
 			base.Add (c);
 		}
 
@@ -55,7 +56,7 @@ namespace gui_diff
 			}
 		}
 
-		public bool Execute (string cmd)
+		public bool Execute (string? cmd)
 		{
 			if (string.IsNullOrEmpty (cmd))
 				return false;
@@ -70,9 +71,9 @@ namespace gui_diff
 
 	public class Command
 	{
-		public string [] Words;
-		public CommandAction Action;
-		public string Help;
+		public required string [] Words;
+		public required CommandAction Action;
+		public required string Help;
 
 		public bool Execute (string Word)
 		{

@@ -35,11 +35,11 @@ namespace gui_diff
 	public abstract class Diff
 	{
 		public static string PREFIX = string.Empty;
-		public static Diff Instance;
+		public static Diff? Instance;
 
 		public List<Entry> entries = new List<Entry> ();
 		public bool list_dirty = true;
-		public Entry selected;
+		public Entry? selected;
 
 		public Diff ()
 		{
@@ -47,7 +47,7 @@ namespace gui_diff
 
 		public string GetDiff (Entry selected, bool? staged)
 		{
-			string diff = null;
+			string diff;
 			string color = "--no-color";
 
 			if (selected == null) {
@@ -72,7 +72,7 @@ namespace gui_diff
 		public void RefreshList ()
 		{
 			int Ac = 0, ADc = 0, DAc = 0, Dc = 0;
-			var status = ExecuteToLines ("git", ["status","--porcelain"]);
+			var status = ExecuteToLines ("git", ["status", "--porcelain"]);
 			List<string> diff = ExecuteToLines ("git", ["diff", "--name-only", "--ignore-submodules"]);
 			List<string> staged = ExecuteToLines ("git", ["diff", "--name-only", "--staged"]);
 			List<string> untracked = ExecuteToLines ("git", ["ls-files", "--other", "--exclude-standard"]);
@@ -85,10 +85,11 @@ namespace gui_diff
 			foreach (var file in all) {
 				if (PREFIX.Length > 1 && !file.StartsWith (PREFIX, StringComparison.Ordinal))
 					continue;
-				Entry entry = new Entry ();
-				entry.filename = file;
-				entry.staged = staged.Contains (file);
-				entry.staged_whole = !diff.Contains (file);
+				var entry = new Entry () {
+					filename = file,
+					staged = staged.Contains (file),
+					staged_whole = !diff.Contains (file),
+				};
 				if (Directory.Exists (file)) {
 					entry.is_directory = true;
 				} else if (!File.Exists (file)) {
@@ -112,9 +113,10 @@ namespace gui_diff
 			foreach (var file in untracked) {
 				if (PREFIX.Length > 1 && !file.StartsWith (PREFIX, StringComparison.Ordinal))
 					continue;
-				Entry entry = new Entry ();
-				entry.filename = file;
-				entry.untracked = true;
+				var entry = new Entry () {
+					filename = file,
+					untracked = true,
+				};
 				entries.Add (entry);
 			}
 
@@ -141,17 +143,19 @@ namespace gui_diff
 			list_dirty = false;
 		}
 
-		public List<string> ExecuteToLines (string cmd, string[] args)
+		public List<string> ExecuteToLines (string cmd, IEnumerable<string> args)
 		{
-			return new List<string> (Execute (cmd, args).Split (new char [] { (char) 10, (char) 13 }, StringSplitOptions.RemoveEmptyEntries));
+			var output = Execute (cmd, args);
+			var lines = output.Split ([(char) 10, (char) 13], StringSplitOptions.RemoveEmptyEntries);
+			return [.. lines];
 		}
 
-		public string Execute (string cmd, string[] args)
+		public string Execute (string cmd, IEnumerable<string> args)
 		{
 			return Execute (cmd, args, true);
 		}
 
-		public string Execute (string cmd, string[] args, bool capture_stdout)
+		public string Execute (string cmd, IEnumerable<string> args, bool capture_stdout)
 		{
 			return Execute (cmd, args, capture_stdout, true);
 		}
@@ -162,7 +166,7 @@ namespace gui_diff
 			list_dirty = true;
 		}
 
-		public string Execute (string cmd, string [] args, bool capture_stdout, bool wait_for_exit, bool use_shell_execute = false)
+		public string Execute (string cmd, IEnumerable<string> args, bool capture_stdout, bool wait_for_exit, bool use_shell_execute = false)
 		{
 			var std = new StringBuilder ();
 
@@ -225,7 +229,7 @@ namespace gui_diff
 								throw new Exception ("Program execution failed (" + p.ExitCode + "): " + Environment.NewLine + std.ToString ());
 							return std.ToString ();
 						} else {
-							return null;
+							return "";
 						}
 					}
 				}
@@ -320,16 +324,16 @@ namespace gui_diff
 			}
 		}
 
-		private void Convert (string filename, string eol)
+		void Convert (string filename, string eol)
 		{
 			Encoding.RegisterProvider (CodePagesEncodingProvider.Instance);
 
-			string line;
+			string? line;
 			bool last_line_empty = false;
 
-			using (MemoryStream buffer = new MemoryStream ()) {
-				using (StreamReader reader = new StreamReader (filename, System.Text.Encoding.GetEncoding (1252), true)) {
-					using (StreamWriter writer = new StreamWriter (buffer, reader.CurrentEncoding)) {
+			using (var buffer = new MemoryStream ()) {
+				using (var reader = new StreamReader (filename, System.Text.Encoding.GetEncoding (1252), true)) {
+					using (var writer = new StreamWriter (buffer, reader.CurrentEncoding)) {
 						while ((line = reader.ReadLine ()) != null) {
 							writer.Write (line);
 							writer.Write (eol);
@@ -365,7 +369,7 @@ namespace gui_diff
 				string original_cd = Environment.CurrentDirectory;
 				while (!Directory.Exists (Path.Combine (Environment.CurrentDirectory, ".git")) && !File.Exists (Path.Combine (Environment.CurrentDirectory, ".git"))) {
 					PREFIX = Path.GetFileName (Environment.CurrentDirectory) + Path.DirectorySeparatorChar + PREFIX;
-					string dir = Path.GetDirectoryName (Environment.CurrentDirectory);
+					string dir = Path.GetDirectoryName (Environment.CurrentDirectory)!;
 					if (!Directory.Exists (dir)) {
 						Console.WriteLine ("Could not find any .git directory starting at {0}", original_cd);
 						return 1;
@@ -400,9 +404,9 @@ namespace gui_diff
 
 	public class Entry
 	{
-		public string filename;
+		public required string filename;
 		public bool is_binary;
-		public string eol;
+		public string? eol;
 		public bool messed_up_eol;
 		public bool staged;
 		public bool staged_whole;
@@ -411,10 +415,6 @@ namespace gui_diff
 		public bool added;
 		public bool untracked;
 		public bool is_directory;
-
-		public string QuotedFileName {
-			get { return "\"" + filename + "\""; }
-		}
 
 		public bool staged_partially {
 			get {

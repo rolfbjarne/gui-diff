@@ -46,11 +46,16 @@ namespace gui_diff
 
 		void SelectNextFile ()
 		{
-			int idx = entries.IndexOf (selected);
-			if (idx + 1 == entries.Count) {
+			int idx;
+			if (selected is null) {
 				idx = 0;
 			} else {
-				idx++;
+				idx = entries.IndexOf (selected);
+				if (idx + 1 == entries.Count) {
+					idx = 0;
+				} else {
+					idx++;
+				}
 			}
 			selected = entries [idx];
 		}
@@ -58,7 +63,7 @@ namespace gui_diff
 		// returns true if any file was selected
 		bool SelectNextFileWithMergeConflict ()
 		{
-			var idx = entries.IndexOf (selected);
+			var idx = selected is null ? -1 : entries.IndexOf (selected);
 			var nextMergeConflict = entries.FindIndex ((idx == -1 || idx >= entries.Count - 1) ? 0 : idx + 1, (v) => v.staged_partially);
 			if (nextMergeConflict == -1 && idx > -1)
 				nextMergeConflict = entries.FindIndex ((v) => v.staged_partially);
@@ -70,7 +75,7 @@ namespace gui_diff
 
 		void ShowDiff (bool? staged, bool monoport)
 		{
-			string diff = null;
+			string diff = string.Empty;
 			string color;
 			if (!monoport) {
 				Console.Clear ();
@@ -85,7 +90,7 @@ namespace gui_diff
 						Console.WriteLine ("STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF");
 						Console.ResetColor ();
 					}
-					diff = Execute ("git", ["diff", "--staged", color], monoport);
+				   diff = Execute ("git", new[] { "diff", "--staged", color }, monoport);
 					if (!monoport) {
 						Console.ForegroundColor = ConsoleColor.Magenta;
 						Console.WriteLine ("STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF");
@@ -106,14 +111,14 @@ namespace gui_diff
 						Console.WriteLine ("STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF");
 						Console.ResetColor ();
 					}
-					diff = Execute ("git", "diff --staged " + color + " -- " + selected.QuotedFileName, monoport);
+					diff = Execute ("git", ["diff", "--staged", color, "--", selected.filename], monoport);
 					if (!monoport) {
 						Console.ForegroundColor = ConsoleColor.Magenta;
 						Console.WriteLine ("STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF");
 						Console.ResetColor ();
 					}
 				} else {
-					diff = Execute ("git", "diff " + color + " -- " + selected.QuotedFileName, monoport);
+					diff = Execute ("git", ["diff", color, "--", selected.filename], monoport);
 				}
 			}
 			if (monoport) {
@@ -122,16 +127,16 @@ namespace gui_diff
 				} else {
 					string tmpfile = Path.GetTempFileName ();
 					File.WriteAllText (tmpfile, diff);
-					Execute ("monoport", tmpfile);
+					Execute ("monoport", [tmpfile]);
 					File.Delete (tmpfile);
 				}
 			}
 		}
 
-		static string FindChangeLog (Entry entry)
+		static string? FindChangeLog (Entry entry)
 		{
 			string find;
-			string dir = Path.GetDirectoryName (entry.filename);
+			string dir = Path.GetDirectoryName (entry.filename)!;
 			do {
 				find = Path.Combine (dir, "ChangeLog");
 				if (File.Exists (find)) {
@@ -141,7 +146,7 @@ namespace gui_diff
 				Console.WriteLine ("No ChangeLog in {0} (filename: {1})", dir, entry.filename);
 				if (dir == "")
 					break;
-				dir = Path.GetDirectoryName (dir);
+				dir = Path.GetDirectoryName (dir)!;
 			} while (dir != "/");
 
 			return null;
@@ -151,11 +156,11 @@ namespace gui_diff
 		{
 			if (selected == null)
 				throw new ArgumentNullException ("You must select a file first");
-			string changelog = FindChangeLog (selected);
+			var changelog = FindChangeLog (selected);
 			if (changelog == null)
 				throw new Exception ("No changelog found");
-			string sdiff = Execute ("git", "diff --staged " + changelog);
-			string fn = selected.filename.Substring (Path.GetDirectoryName (changelog).Length == 0 ? 0 : Path.GetDirectoryName (changelog).Length + 1);
+			string sdiff = Execute ("git", ["diff", "--staged", changelog]);
+			string fn = selected.filename.Substring (Path.GetDirectoryName (changelog)!.Length == 0 ? 0 : Path.GetDirectoryName (changelog)!.Length + 1);
 			string content = File.ReadAllText (changelog);
 
 			if (string.IsNullOrEmpty (sdiff) || string.IsNullOrEmpty (content)) {
@@ -178,15 +183,15 @@ namespace gui_diff
 			}
 			Console.WriteLine ("Opening ChangeLog for editing...");
 			//Execute ("gnome-terminal", "--maximize -e \"nano -c " + changelog + "\"", false);
-			Execute ("meld", Path.Combine (Environment.CurrentDirectory, changelog), false);
-			Execute ("git", "add " + changelog);
+			Execute ("meld", [Path.Combine (Environment.CurrentDirectory, changelog)], false);
+			Execute ("git", ["add", changelog]);
 			Console.WriteLine ("ChangeLog added");
 			selected.edited_changelog = true;
 		}
 
 		public void FixDate (string filename)
 		{
-			string diff = Execute ("git", "diff --staged --no-color -- " + filename, true);
+			string diff = Execute ("git", ["diff", "--staged", "--no-color", "--", filename], true);
 			if (string.IsNullOrEmpty (diff)) {
 				Console.WriteLine ("Nothing diff staged for the file: {0}", filename);
 				return;
@@ -201,30 +206,40 @@ namespace gui_diff
 
 			//string backup = filename + string.Format (".{0:yyyyMMddHHmmss}.backup", DateTime.Now);
 			//File.Copy (filename, backup);
-			Execute ("git", "reset HEAD -- " + filename);
-			Execute ("git", "co HEAD -- " + filename);
+			Execute ("git", ["reset", "HEAD", "--", filename]);
+			Execute ("git", ["co", "HEAD", "--", filename]);
 			string tmp = Path.GetTempFileName ();
 			File.WriteAllText (tmp, result);
-			Execute ("git", "apply " + tmp);
+			Execute ("git", ["apply", tmp]);
 			File.Delete (tmp);
-			Execute ("git", "add " + filename);
+			Execute ("git", ["add", filename]);
 
 			Console.WriteLine ("Fixed date in file: {0}", filename);
 		}
 
-		Commands cmds;
+		Commands? cmds;
 
 		void Add (IEnumerable<Entry> values)
 		{
 			var not_staged_deleted = values.Where ((v) => !(v.deleted && v.staged));
 
 			foreach (var entry_batch in not_staged_deleted.Batch (20)) {
-				Execute ("git", "add -f -- " + string.Join (" ", entry_batch.Select ((e) => e.QuotedFileName)));
+				Execute ("git", [ "add", "-f", "--", ..entry_batch.Select ((e) => e.filename)]);
 				Console.WriteLine ("Added " + string.Join (", ", entry_batch.Select ((e) => e.filename)));
 			}
 		}
 
-		Entry GetSelectedFile (bool allowUnselected  = false)
+		Entry? GetNullableSelectedFile ()
+		{
+			return GetSelectedFileOrNot (true);
+		}
+
+		Entry GetSelectedFile ()
+		{
+			return GetSelectedFileOrNot (false)!;
+		}
+
+		Entry? GetSelectedFileOrNot (bool allowUnselected  = false)
 		{
 			if (selected != null)
 				return selected;
@@ -241,13 +256,13 @@ namespace gui_diff
 		void EditSelectedFile ()
 		{
 			var selected = GetSelectedFile();
-			Execute ("gedit", selected.QuotedFileName);
+			Execute ("gedit", [selected.filename]);
 		}
 
 		bool Do ()
 		{
-			string last_cmd = null;
-			string cmd;
+			string? last_cmd = null;
+			string? cmd;
 			int id;
 
 			PrintList ();
@@ -256,7 +271,7 @@ namespace gui_diff
 			{
 				{ "h|help|?", "Show this help message", delegate (string v)
 					{
-						cmds.Help ();
+						cmds!.Help ();
 					}
 				},
 				{ "e|edit", "Open file in editor", delegate (string v)
@@ -267,18 +282,18 @@ namespace gui_diff
 				{ "gedit", "Open the file in gedit", delegate (string v)
 					{
 						var selected = GetSelectedFile ();
-						Execute ("gedit", selected.QuotedFileName, false, false, false);
+						Execute ("gedit", [selected.filename], false, false, false);
 					}
 				},
 				{ "geditall", "Open the files in gedit", delegate (string v)
 					{
-						Execute ("gedit", string.Join (" ", entries.Where ((w) => !w.untracked).Select ((w) => w.QuotedFileName).ToArray ()), false, false, false);
+						Execute ("gedit", entries.Where ((w) => !w.untracked).Select ((w) => w.filename), false, false, false);
 					}
 				},
 				{ "nano", "Open file in nano", delegate (string v)
 					{
 						var selected = GetSelectedFile ();
-						Execute ("nano", "-c " + selected.QuotedFileName, false);
+						Execute ("nano", ["-c", selected.filename], false);
 					}
 				},
 				{ "c|changelog", "Edit ChangeLog for the selected file", delegate (string v)
@@ -294,7 +309,7 @@ namespace gui_diff
 						var selected = GetSelectedFile ();
 						list_dirty = true;
 						if (!(selected.deleted && selected.staged))
-							Execute ("git", (selected.deleted ? "rm -- " : "add -f -- ") + selected.QuotedFileName);
+							Execute ("git", selected.deleted ? ["rm", "--", selected.filename] : ["add", "-f", "--", selected.filename]);
 						PrintList ();
 					}
 				},
@@ -303,7 +318,7 @@ namespace gui_diff
 						var selected = GetSelectedFile ();
 						list_dirty = true;
 						if (!(selected.deleted && selected.staged))
-							Execute ("git", (selected.deleted ? "rm -- " : "add -f -- ") + selected.QuotedFileName);
+							Execute ("git", selected.deleted ? ["rm", "--", selected.filename] : ["add", "-f", "--", selected.filename]);
 						if (selected == null)
 							throw new DiffException ("You need to select a file first.");
 						SelectNextFile ();
@@ -337,7 +352,7 @@ namespace gui_diff
 					{
 						var selected = GetSelectedFile ();
 						list_dirty = true;
-						Execute ("git", (selected.deleted ? "rm -- " : "add -f -- ") + selected.QuotedFileName);
+						Execute ("git", selected.deleted ? ["rm", "--", selected.filename] : ["add", "-f", "--", selected.filename]);
 						EditChangeLog (selected);
 						PrintList ();
 					}
@@ -346,7 +361,7 @@ namespace gui_diff
 					{
 						var selected = GetSelectedFile ();
 						list_dirty = true;
-						Execute ("git", (selected.deleted ? "rm -- " : "add -f -- ") + selected.QuotedFileName);
+						Execute ("git", selected.deleted ? ["rm", "--", selected.filename] : ["add", "-f", "--", selected.filename]);
 						ShowDiff (true);
 					}
 				},
@@ -354,12 +369,12 @@ namespace gui_diff
 					{
 						var selected = GetSelectedFile ();
 						list_dirty = true;
-						Execute ("git", "add -p " + selected.QuotedFileName, false);
+						Execute ("git", ["add", "-p", selected.filename], false);
 					}
 				},
 				{ "ci|gitci|git ci", "Commit using gitci", delegate (string v)
 					{
-						Execute ("gitci", "", false);
+						Execute ("gitci", [], false);
 						list_dirty = true;
 						PrintList ();
 					}
@@ -367,7 +382,7 @@ namespace gui_diff
 				{ "commit", "Commit using git (git commit)", delegate (string v)
 					{
 						list_dirty = true;
-						Execute ("git", "commit", false);
+						Execute ("git", ["commit"], false);
 						PrintList ();
 					}
 				},
@@ -411,9 +426,9 @@ namespace gui_diff
 						var selected = GetSelectedFile ();
 						list_dirty = true;
 						if (selected.untracked) {
-							Execute ("rm", "-- " + selected.QuotedFileName);
+							Execute ("rm", ["--", selected.filename]);
 						} else {
-							Execute ("git", "rm -f -- " + selected.QuotedFileName);
+							Execute ("git", ["rm", "-f", "--", selected.filename]);
 						}
 						PrintList ();
 					}
@@ -428,7 +443,7 @@ namespace gui_diff
 				{ "amend", "Executes git commit --amend", delegate (string v)
 					{
 						list_dirty = true;
-						Execute ("git", "commit --amend", false);
+						Execute ("git", ["commit", "--amend"], false);
 						PrintList ();
 					}
 				},
@@ -436,10 +451,10 @@ namespace gui_diff
 					{
 						list_dirty = true;
 						if (selected == null) {
-							Execute ("git", "reset");
+							Execute ("git", ["reset"]);
 							PrintList ();
 						} else {
-							Execute ("git", "reset -- " + selected.QuotedFileName);
+							Execute ("git", ["reset", "--", selected.filename]);
 							var selected_file = selected.filename;
 							RefreshList ();
 							selected = entries.Single (v => v.filename == selected_file);
@@ -452,7 +467,7 @@ namespace gui_diff
 						var filesWithMergeConflicts = entries.Where (v => v.staged_partially);
 						if (filesWithMergeConflicts.Any ()) {
 							list_dirty = true;
-                            Execute ("git", "reset -- " + string.Join (" ", filesWithMergeConflicts.Select (v => v.QuotedFileName)));
+                            Execute ("git", ["reset", "--", ..filesWithMergeConflicts.Select (v => v.filename)]);
                             RefreshList ();
                             PrintList ();
                         }
@@ -462,7 +477,7 @@ namespace gui_diff
 					{
 						var selected = GetSelectedFile ();
 						list_dirty = true;
-						Execute ("git", "checkout " + selected.QuotedFileName);
+						Execute ("git", ["checkout", selected.filename]);
 						PrintList ();
 					}
 				},
@@ -470,7 +485,7 @@ namespace gui_diff
 					{
 						var selected = GetSelectedFile ();
 						list_dirty = true;
-						Execute ("git", "checkout " + selected.QuotedFileName);
+						Execute ("git", ["checkout", selected.filename]);
 						SelectNextFile ();
 						ShowDiff (null);
 					}
@@ -479,12 +494,12 @@ namespace gui_diff
 					{
 						var selected = GetSelectedFile ();
 						list_dirty = true;
-						Execute ("muld", Path.Combine (Environment.CurrentDirectory, selected.QuotedFileName), false);
+						Execute ("muld", [Path.Combine (Environment.CurrentDirectory, selected.filename)], false);
 					}
 				},
 				{ "gui", "Run git gui", delegate (string v)
 					{
-						Execute ("git", "gui", false, false);
+						Execute ("git", ["gui"], false, false);
 					}
 				},
 				{ "r|refresh", "Refresh the list", delegate (string v)
@@ -519,7 +534,7 @@ namespace gui_diff
 						var selected = GetSelectedFile ();
 						Dos2Unix (selected.filename);
 						if (selected.staged_whole)
-							Execute ("git", "add -f " + selected.QuotedFileName);
+							Execute ("git", ["add", "-f", selected.filename]);
 						list_dirty = true;
 						ShowDiff (null);
 					}
@@ -534,33 +549,33 @@ namespace gui_diff
 				{ "i|ignore", "Add file to .gitignore in current directory", delegate (string v)
 					{
 						var selected = GetSelectedFile ();
-						File.AppendAllText (Path.Combine (Path.GetDirectoryName (selected.filename), ".gitignore"), Path.GetFileName (selected.filename) + '\n');
+						File.AppendAllText (Path.Combine (Path.GetDirectoryName (selected.filename)!, ".gitignore"), Path.GetFileName (selected.filename) + '\n');
 						list_dirty = true;
 					}
 				},
 				{ "ignore-extension", "Add extension of file to .gitignore in current directory", delegate (string v)
 					{
 						var selected = GetSelectedFile ();
-						File.AppendAllText (Path.Combine (Path.GetDirectoryName (selected.filename), ".gitignore"), "*" + Path.GetExtension (selected.filename) + '\n');
+						File.AppendAllText (Path.Combine (Path.GetDirectoryName (selected.filename)!, ".gitignore"), "*" + Path.GetExtension (selected.filename) + '\n');
 						list_dirty = true;
 					}
 				},
 				{ "log", "Run 'git log' on the selected file", (v) =>
 					{
 						var selected = GetSelectedFile ();
-						Execute ("git", "log -- " + selected.QuotedFileName, false, true);
+						Execute ("git", ["log", "--", selected.filename], false, true);
 					}
 				},
 				{ "log --oneline", "Run 'git log --oneline' on the selected file", (v) =>
 					{
 						var selected = GetSelectedFile ();
-						Execute ("git", "log --oneline -- " + selected.QuotedFileName, false, true);
+						Execute ("git", ["log", "--oneline", "--", selected.filename], false, true);
 					}
 				},
 				{ "blame", "Run 'git blame' on the selected file", (v) =>
 					{
 						var selected = GetSelectedFile ();
-						Execute ("git", "blame -- " + selected.QuotedFileName, false, true);
+						Execute ("git", ["blame", "--", selected.filename], false, true);
 					}
 				},
 				{ "commit *", "Commit using the specified commit message", (v) =>
@@ -570,8 +585,8 @@ namespace gui_diff
 							throw new DiffException ("Commit message is empty");
 
 						if (selected != null)
-							Execute ("git", "add -f -- " + selected.QuotedFileName, false, true);
-						Execute ("git", $"commit -m \"{msg}\"", false, true);
+							Execute ("git", ["add", "-f", "--", selected.filename], false, true);
+						Execute ("git", ["commit", "-m", msg], false, true);
 						list_dirty = true;
 						PrintList ();
 					}
@@ -579,8 +594,8 @@ namespace gui_diff
 				{ "z", "Amend HEAD with the current staged changes", (v) =>
 					{
 						if (selected != null)
-							Execute ("git", "add -f -- " + selected.QuotedFileName, false, true);
-						Execute ("git", $"commit --amend -C HEAD", false, true);
+							Execute ("git", ["add", "-f", "--", selected.filename], false, true);
+						Execute ("git", ["commit", "--amend", "-C", "HEAD"], false, true);
 						list_dirty = true;
 						PrintList ();
 					}
@@ -588,9 +603,9 @@ namespace gui_diff
 				{ "ame", "Add selected (if any), edit next file with a merge conflict", (v) =>
 					{
 
-						var selected = GetSelectedFile (allowUnselected: true);
+						var selected = GetNullableSelectedFile ();
 						if (selected is not null) {
-							Execute ("git", (selected.deleted ? "rm -- " : "add ") + selected.QuotedFileName);
+							Execute ("git", selected.deleted ? ["rm", "--", selected.filename] : ["add", selected.filename]);
 							RefreshList ();
 						}
 						list_dirty = true;
@@ -672,7 +687,7 @@ namespace gui_diff
 		string GetTopLevel ()
 		{
 			if (topLevel is null) {
-				topLevel = Execute ("git", "rev-parse --show-toplevel")?.Trim ();
+				topLevel = Execute ("git", ["rev-parse", "--show-toplevel"])?.Trim ();
 				if (topLevel is null)
 					throw new Exception ("Not a git repository");
 			}
