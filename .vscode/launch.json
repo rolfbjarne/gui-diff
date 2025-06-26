@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Run in macios/main",
+            "name": "Run in macios/llvm",
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "dotnet: build",
@@ -15,7 +15,7 @@
                 "${workspaceFolder}/gui-diff.csproj",
                 "--no-build"
             ],
-            "cwd": "/Users/rolf/work/dotnet/macios/main/macios/src",
+            "cwd": "/Users/rolf/work/dotnet/macios/llvm/macios/",
         }
     ]
 }

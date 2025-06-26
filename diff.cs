@@ -201,7 +201,7 @@ namespace gui_diff
 							throw new DiffException ($"Unexpected status line: {line}");
 						}
 					}
-				}						
+				}
 
 				if (PREFIX.Length > 1 && !file.StartsWith (PREFIX, StringComparison.Ordinal))
 					continue;
@@ -266,6 +266,11 @@ namespace gui_diff
 					conflict = true;
 					break;
 				case ' ':
+					switch (y) {
+					case 'D':
+						deleted = true;
+						break;
+					}
 					break;
 				default:
 					throw new DiffException ($"Unexpected status line: {line}");
@@ -632,6 +637,10 @@ namespace gui_diff
 			get {
 				return staged && !staged_whole;
 			}
+		}
+		public override string ToString ()
+		{
+			return $"{filename}: is_binary: {is_binary}, eol: {eol}, messed_up_eol: {messed_up_eol}, has_conflict_marker: {has_conflict_marker}, staged: {staged}, staged_whole: {staged_whole}, deleted: {deleted}, edited_changelog: {edited_changelog}, added: {added}, untracked: {untracked}, is_directory: {is_directory}, conflict: {conflict}, renamed: {renamed}, renamed_from: {renamed_from}";
 		}
 	}
 

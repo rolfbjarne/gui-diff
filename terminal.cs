@@ -589,6 +589,7 @@ namespace gui_diff
 			bool any_binaries = false;
 			bool any_outside_file_references = false;
 			int max_filename_length = 0;
+			int max_eol_length = 0;
 			ConsoleColor color = ConsoleColor.Black;
 			for (int i = 0; i < entries.Count; i++) {
 				any_eol_issues |= entries [i].messed_up_eol;
@@ -601,6 +602,7 @@ namespace gui_diff
 				any_binaries |= entries [i].is_binary;
 				any_outside_file_references |= entries [i].renamed_from?.StartsWith (PREFIX) != true;
 				max_filename_length = Math.Max (max_filename_length, entries [i].filename.Length);
+				max_eol_length = Math.Max (max_eol_length, entries [i].eol?.Length ?? 0);
 			}
 
 			var ignorePrefix = any_outside_file_references ? string.Empty : PREFIX;
@@ -694,8 +696,16 @@ namespace gui_diff
 				}
 				Console.Write (" ");
 
-				Console.Write (entries [i].eol);
-				Console.Write (" ");
+				if (max_eol_length > 0) {
+					var eol = entries [i].eol;
+					if (eol is not null) {
+						Console.Write (eol.PadRight (max_eol_length));
+					} else {
+						Console.Write ("".PadRight (max_eol_length));
+					}
+				} else {
+					Console.Write ("");
+				}
 
 				if (color != ConsoleColor.Black)
 					Console.ForegroundColor = color;
