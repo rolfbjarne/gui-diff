@@ -89,8 +89,18 @@ namespace gui_diff
 				}
 			} else {
 				if (selected.untracked) {
-					diff = File.ReadAllText (selected.filename);
-					Console.WriteLine (diff);
+					if (File.Exists (selected.filename)) {
+						diff = File.ReadAllText (selected.filename);
+						Console.WriteLine (diff);
+					} else if (Directory.Exists (selected.filename)) {
+						Console.ForegroundColor = ConsoleColor.DarkRed;
+						Console.WriteLine ($"Can't show diff, {selected.filename} is a directory.");
+						Console.ResetColor ();
+					} else {
+						Console.ForegroundColor = ConsoleColor.DarkRed;
+						Console.WriteLine ($"Can't show diff, {selected.filename} doesn't exist.");
+						Console.ResetColor ();
+					}
 				} else if (((selected.staged_whole || selected.staged) && !(staged.HasValue && !staged.Value)) || (staged.HasValue && staged.Value)) {
 					Console.ForegroundColor = ConsoleColor.Magenta;
 					Console.WriteLine ("STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF STAGED DIFF");
