@@ -181,12 +181,13 @@ namespace gui_diff
 						} else if (ch == '\\') {
 							sb.Append (file [i + 1]);
 							i++;
-						} else if (ch == ' ') {
+						} else if (ch == ' ' && i + 4 < file.Length && file [i + 1] == '-' && file [i + 2] == '>' && file [i + 3] == ' ') {
 							renamed = true;
 							renamed_from = sb.ToString ();
 							sb.Clear ();
+							i += 3; // skip the " -> "
 						} else {
-							throw new DiffException ($"Unexpected status line: {line}");
+							sb.Append (ch);
 						}
 					}
 					file = sb.ToString ();
