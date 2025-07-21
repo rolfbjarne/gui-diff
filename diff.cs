@@ -169,40 +169,27 @@ namespace gui_diff
 
 				string? renamed_from = null;
 				var renamed = false;
-				if (file [0] == '"') {
-					var sb = new StringBuilder ();
-					var inQuote = false;
-					for (int i = 0; i < file.Length; i++) {
-						var ch = file [i];
-						if (ch == '"') {
-							inQuote = !inQuote;
-						} else if (inQuote) {
-							sb.Append (ch);
-						} else if (ch == '\\') {
-							sb.Append (file [i + 1]);
-							i++;
-						} else if (ch == ' ' && i + 4 < file.Length && file [i + 1] == '-' && file [i + 2] == '>' && file [i + 3] == ' ') {
-							renamed = true;
-							renamed_from = sb.ToString ();
-							sb.Clear ();
-							i += 3; // skip the " -> "
-						} else {
-							sb.Append (ch);
-						}
-					}
-					file = sb.ToString ();
-				} else {
-					var space = file.IndexOf (' ');
-					if (space >= 0) {
-						if (file [space..(space + 4)] == " -> ") {
-							renamed = true;
-							renamed_from = file.Substring (0, space);
-							file = file.Substring (space + 4);
-						} else {
-							throw new DiffException ($"Unexpected status line: {line}");
-						}
+				var sb = new StringBuilder ();
+				var inQuote = false;
+				for (int i = 0; i < file.Length; i++) {
+					var ch = file [i];
+					if (ch == '"') {
+						inQuote = !inQuote;
+					} else if (inQuote) {
+						sb.Append (ch);
+					} else if (ch == '\\') {
+						sb.Append (file [i + 1]);
+						i++;
+					} else if (ch == ' ' && i + 4 < file.Length && file [i + 1] == '-' && file [i + 2] == '>' && file [i + 3] == ' ') {
+						renamed = true;
+						renamed_from = sb.ToString ();
+						sb.Clear ();
+						i += 3; // skip the " -> "
+					} else {
+						sb.Append (ch);
 					}
 				}
+				file = sb.ToString ();
 
 				if (PREFIX.Length > 1 && !file.StartsWith (PREFIX, StringComparison.Ordinal))
 					continue;
