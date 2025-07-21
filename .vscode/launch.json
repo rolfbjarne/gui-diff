@@ -15,7 +15,7 @@
                 "${workspaceFolder}/gui-diff.csproj",
                 "--no-build"
             ],
-            "cwd": "/Users/rolf/work/dotnet/macios/llvm/macios/",
+            "cwd": "/Users/rolf/work/dotnet/macios/mono-master/macios/",
         }
     ]
 }
