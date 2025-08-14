@@ -122,7 +122,7 @@ namespace gui_diff
 				} else if (!File.Exists (file)) {
 					entry.deleted = true;
 				} else {
-					entry.messed_up_eol = IsEolMessedUp (file, out Ac, out ADc, out DAc, out Dc, out var hasConflictMarkers, ref entry.is_binary);
+					entry.messed_up_eol = IsEolMessedUp (file, out Ac, out ADc, out DAc, out Dc, out var tabs, out var hasConflictMarkers, ref entry.is_binary);
 					if (!entry.messed_up_eol) {
 						if (Ac > 0) {
 							entry.eol = "LF  ";
@@ -277,8 +277,9 @@ namespace gui_diff
 				};
 
 				if (!entry.is_directory && !entry.deleted) {
-					entry.messed_up_eol = IsEolMessedUp (file, out var Ac, out var ADc, out var DAc, out var Dc, out var hasConflictMarkers, ref entry.is_binary);
+					entry.messed_up_eol = IsEolMessedUp (file, out var Ac, out var ADc, out var DAc, out var Dc, out entry.tabs, out var hasConflictMarkers, ref entry.is_binary);
 					entry.has_conflict_marker = hasConflictMarkers;
+					entry.has_unexpected_tabs = entry.tabs > 0 && filesThatShouldHaveNoTabs.Contains (Path.GetFileName (file));
 					if (!entry.messed_up_eol) {
 						if (Ac > 0) {
 							entry.eol = "LF  ";
@@ -294,6 +295,12 @@ namespace gui_diff
 				entries.Add (entry);
 			}
 		}
+
+		HashSet<string> filesThatShouldHaveNoTabs = [
+			"Version.Details.xml",
+			"Version.Details.props",
+			"Version.props",
+		];
 
 		public List<string> ExecuteToLines (string cmd, IEnumerable<string> args)
 		{
@@ -412,12 +419,12 @@ namespace gui_diff
 
 		public bool IsEolMessedUp (string filename, out int Ac, out int ADc, out int DAc, out int Dc, ref bool is_binary)
 		{
-			return IsEolMessedUp (filename, out Ac, out ADc, out DAc, out Dc, out var _, ref is_binary);
+			return IsEolMessedUp (filename, out Ac, out ADc, out DAc, out Dc, out var _, out var _, ref is_binary);
 		}
 
-		public bool IsEolMessedUp (string filename, out int Ac, out int ADc, out int DAc, out int Dc, out bool hasConflictMarkers, ref bool is_binary)
+		public bool IsEolMessedUp (string filename, out int Ac, out int ADc, out int DAc, out int Dc, out int tabs, out bool hasConflictMarkers, ref bool is_binary)
 		{
-			ProcessTextFile (filename, out Ac, out ADc, out DAc, out Dc, out hasConflictMarkers, ref is_binary);
+			ProcessTextFile (filename, out Ac, out ADc, out DAc, out Dc, out tabs, out hasConflictMarkers, ref is_binary);
 			if (is_binary)
 				return false;
 
@@ -428,7 +435,7 @@ namespace gui_diff
 			return A + AD + DA + D > 1;
 		}
 		
-		public void ProcessTextFile (string filename, out int Ac, out int ADc, out int DAc, out int Dc, out bool hasConflictMarkers, ref bool is_binary)
+		public void ProcessTextFile (string filename, out int Ac, out int ADc, out int DAc, out int Dc, out int tabs, out bool hasConflictMarkers, ref bool is_binary)
 		{
 			int i = 0;
 
@@ -438,6 +445,7 @@ namespace gui_diff
 			ADc = 0;
 			DAc = 0;
 			Dc = 0;
+			tabs = 0;
 			hasConflictMarkers = false;
 
 			while (i < contents.Length) {
@@ -460,6 +468,9 @@ namespace gui_diff
 					} else {
 						Dc++;
 					}
+					break;
+				case (byte) '\t':
+					tabs++;
 					break;
 				case (byte) '<': 
 				case (byte) '=': 
@@ -610,6 +621,8 @@ namespace gui_diff
 		public string? eol;
 		public bool messed_up_eol;
 		public bool has_conflict_marker;
+		public int tabs;
+		public bool has_unexpected_tabs;
 		public bool staged;
 		public bool staged_whole;
 		public bool deleted;
@@ -628,7 +641,7 @@ namespace gui_diff
 		}
 		public override string ToString ()
 		{
-			return $"{filename}: is_binary: {is_binary}, eol: {eol}, messed_up_eol: {messed_up_eol}, has_conflict_marker: {has_conflict_marker}, staged: {staged}, staged_whole: {staged_whole}, deleted: {deleted}, edited_changelog: {edited_changelog}, added: {added}, untracked: {untracked}, is_directory: {is_directory}, conflict: {conflict}, renamed: {renamed}, renamed_from: {renamed_from}";
+			return $"{filename}: is_binary: {is_binary}, eol: {eol}, messed_up_eol: {messed_up_eol}, has_conflict_marker: {has_conflict_marker}, tabs: {tabs}, has_unexpected_tabs: {has_unexpected_tabs} staged: {staged}, staged_whole: {staged_whole}, deleted: {deleted}, edited_changelog: {edited_changelog}, added: {added}, untracked: {untracked}, is_directory: {is_directory}, conflict: {conflict}, renamed: {renamed}, renamed_from: {renamed_from}";
 		}
 	}
 

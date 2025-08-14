@@ -588,12 +588,14 @@ namespace gui_diff
 			bool any_untracked = false;
 			bool any_binaries = false;
 			bool any_outside_file_references = false;
+			bool any_unexpected_tabs = false;
 			int max_filename_length = 0;
 			int max_eol_length = 0;
 			ConsoleColor color = ConsoleColor.Black;
 			for (int i = 0; i < entries.Count; i++) {
 				any_eol_issues |= entries [i].messed_up_eol;
 				any_conflict_markers |= entries [i].has_conflict_marker;
+				any_unexpected_tabs |= entries [i].has_unexpected_tabs;
 				any_staged_partially |= entries [i].staged_partially;
 				any_conflicts |= entries [i].conflict;
 				any_staged |= entries [i].staged_whole;
@@ -649,6 +651,16 @@ namespace gui_diff
 						Console.ResetColor ();
 					} else {
 						Console.Write ("                 ");
+					}
+				}
+				
+				if (any_unexpected_tabs) {
+					if (entries [i].has_unexpected_tabs) {
+						Console.ForegroundColor = ConsoleColor.DarkRed;
+						Console.Write ("TABS HERE ");
+						Console.ResetColor ();
+					} else {
+						Console.Write ("          ");
 					}
 				}
 
