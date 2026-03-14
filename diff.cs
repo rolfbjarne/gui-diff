@@ -150,7 +150,7 @@ namespace gui_diff
 
 		public void RefreshListNew ()
 		{
-			var status = ExecuteToLines ("git", ["status", "--porcelain", "--ignore-submodules"]);
+			var status = ExecuteToLines ("git", ["-c", "core.quotepath=false", "status", "--porcelain", "--ignore-submodules"]);
 
 			selected = null;
 
