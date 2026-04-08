@@ -1,5 +1,5 @@
 #!/bin/bash -e
 
-make --silent -C ~/Projects/rolf/gui-diff
+make --silent -C %DIR%
 
 xGIT_PAGER= %EXECUTABLE% "$@"

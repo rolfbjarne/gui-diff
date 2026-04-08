@@ -13,12 +13,12 @@ all: $(GUI_DIFF) $(GUI_DIFF_DEBUG)
 
 install: ~/bin/gui-diff ~/bin/gui-diff-debug
 
-~/bin/gui-diff: gui-diff $(GUI_DIFF)
+~/bin/gui-diff: gui-diff Makefile
 	@echo "[INSTALL] gui-diff"
-	@sed 's@%EXECUTABLE%@$(CURDIR)/$(GUI_DIFF)@' gui-diff > ~/bin/gui-diff
+	@sed -e  's@%DIR%@$(CURDIR)@' -e 's@%EXECUTABLE%@$(CURDIR)/$(GUI_DIFF)@' gui-diff > ~/bin/gui-diff
 	@chmod +x ~/bin/gui-diff
 
-~/bin/gui-diff-debug: gui-diff $(GUI_DIFF_DEBUG)
+~/bin/gui-diff-debug: gui-diff Makefile
 	@echo "[INSTALL] gui-diff-debug"
-	@sed 's@%EXECUTABLE%@$(CURDIR)/$(GUI_DIFF_DEBUG)@' gui-diff > ~/bin/gui-diff-debug
+	@sed -e  's@%DIR%@$(CURDIR)@' -e 's@%EXECUTABLE%@$(CURDIR)/$(GUI_DIFF_DEBUG)@' gui-diff > ~/bin/gui-diff-debug
 	@chmod +x ~/bin/gui-diff-debug
